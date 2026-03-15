@@ -1,4 +1,4 @@
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -6,6 +6,17 @@ import 'services/firestore_service.dart';
 import 'services/art_api.dart';
 import 'screens/home_screen.dart';
 import 'screens/detail_screen.dart';
+
+int? _getArtworkIdFromUrl() {
+  if (!kIsWeb) return null;
+  // Web: URLのクエリパラメータから作品IDを取得
+  // Uri.baseはFlutterが提供するクロスプラットフォームAPI
+  final idParam = Uri.base.queryParameters['id'];
+  if (idParam != null) {
+    return int.tryParse(idParam);
+  }
+  return null;
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +29,7 @@ void main() async {
   await FirestoreService.syncCloudToLocal();
 
   // URLパラメータから作品IDを取得（LINEからのディープリンク対応）
-  int? artworkId;
-  final uri = Uri.parse(html.window.location.href);
-  final idParam = uri.queryParameters['id'];
-  if (idParam != null) {
-    artworkId = int.tryParse(idParam);
-  }
+  final artworkId = _getArtworkIdFromUrl();
 
   runApp(ImpressionGalleryApp(artworkId: artworkId));
 }
@@ -82,7 +88,6 @@ class _DeepLinkScreenState extends State<DeepLinkScreen> {
           ),
         );
       } else if (mounted) {
-        // 作品が見つからない場合はホームへ
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
