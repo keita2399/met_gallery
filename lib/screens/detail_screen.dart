@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/artwork.dart';
@@ -440,13 +439,12 @@ class _DetailScreenState extends State<DetailScreen> {
                       compact: true,
                     ),
                     _actionButton(icon: Icons.zoom_in, label: '拡大', onTap: _enterZoom, compact: true),
-                    if (!kIsWeb)
-                      _actionButton(
-                        icon: Icons.wb_sunny_outlined,
-                        label: '光',
-                        onTap: () => setState(() => _lightSimulation = true),
-                        compact: true,
-                      ),
+                    _actionButton(
+                      icon: Icons.wb_sunny_outlined,
+                      label: '光',
+                      onTap: () => setState(() => _lightSimulation = true),
+                      compact: true,
+                    ),
                   ],
                 ),
               ),
@@ -482,14 +480,12 @@ class _DetailScreenState extends State<DetailScreen> {
                     label: '拡大',
                     onTap: _enterZoom,
                   ),
-                  if (!kIsWeb) ...[
-                    const SizedBox(height: 16),
-                    _actionButton(
-                      icon: Icons.wb_sunny_outlined,
-                      label: '光',
-                      onTap: () => setState(() => _lightSimulation = true),
-                    ),
-                  ],
+                  const SizedBox(height: 16),
+                  _actionButton(
+                    icon: Icons.wb_sunny_outlined,
+                    label: '光',
+                    onTap: () => setState(() => _lightSimulation = true),
+                  ),
                 ],
               ),
             ),
