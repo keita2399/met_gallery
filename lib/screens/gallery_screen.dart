@@ -25,10 +25,14 @@ class _GalleryScreenState extends State<GalleryScreen> {
   String? _selectedArtist;
   final Map<int, String> _translatedTitles = {};
   bool _panelOpen = false;
+  double _pageOffset = 0.0;
 
   @override
   void initState() {
     super.initState();
+    _pageController.addListener(() {
+      setState(() => _pageOffset = _pageController.page ?? 0.0);
+    });
     _loadData();
   }
 
@@ -176,7 +180,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     _translateTitle(_artworks[i + 1]);
                   }
                 },
-                itemBuilder: (context, index) => _buildArtworkPage(_artworks[index]),
+                itemBuilder: (context, index) => _buildArtworkPage(_artworks[index], index),
               ),
               // Top bar
               Positioned(
@@ -405,7 +409,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
     );
   }
 
-  Widget _buildArtworkPage(Artwork artwork) {
+  Widget _buildArtworkPage(Artwork artwork, int index) {
     final isFav = _favoriteIds.contains(artwork.id);
     final translatedTitle = _translatedTitles[artwork.id];
     final isMobile = MediaQuery.of(context).size.width < 600;
@@ -451,15 +455,21 @@ class _GalleryScreenState extends State<GalleryScreen> {
         fit: StackFit.expand,
         children: [
           if (artwork.imageUrl != null)
-            InteractiveViewer(
-              minScale: 1.0,
-              maxScale: 5.0,
-              child: CachedNetworkImage(
-                imageUrl: artwork.imageUrl!,
-                fit: BoxFit.contain,
-                httpHeaders: ArtApi.imageHeaders,
-                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
+            Transform.translate(
+              offset: Offset(0, (index - _pageOffset) * 60),
+              child: Hero(
+                tag: 'artwork_${artwork.id}',
+                child: InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 5.0,
+                  child: CachedNetworkImage(
+                    imageUrl: artwork.imageUrl!,
+                    fit: BoxFit.contain,
+                    httpHeaders: ArtApi.imageHeaders,
+                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                    errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
+                  ),
+                ),
               ),
             ),
           Container(

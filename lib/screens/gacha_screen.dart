@@ -267,17 +267,20 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: artwork.imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: artwork.imageUrl!,
-                          fit: BoxFit.contain,
-                          httpHeaders: ArtApi.imageHeaders,
-                          placeholder: (context, url) => const SizedBox(
-                            height: 200,
-                            child: Center(child: CircularProgressIndicator()),
-                          ),
-                          errorWidget: (context, url, error) => const SizedBox(
-                            height: 200,
-                            child: Center(child: Icon(Icons.broken_image, color: Colors.white54)),
+                      ? Hero(
+                          tag: 'artwork_${artwork.id}',
+                          child: CachedNetworkImage(
+                            imageUrl: artwork.imageUrl!,
+                            fit: BoxFit.contain,
+                            httpHeaders: ArtApi.imageHeaders,
+                            placeholder: (context, url) => const SizedBox(
+                              height: 200,
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                            errorWidget: (context, url, error) => const SizedBox(
+                              height: 200,
+                              child: Center(child: Icon(Icons.broken_image, color: Colors.white54)),
+                            ),
                           ),
                         )
                       : const SizedBox(height: 200),

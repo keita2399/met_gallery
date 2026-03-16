@@ -142,14 +142,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               fit: StackFit.expand,
               children: [
                 if (artwork.imageUrl != null)
-                  CachedNetworkImage(
-                    imageUrl: artwork.imageUrl!,
-                    fit: BoxFit.cover,
-                    httpHeaders: ArtApi.imageHeaders,
-                    placeholder: (context, url) => Container(color: Colors.grey[900]),
-                    errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[900],
-                      child: const Icon(Icons.broken_image, color: Colors.white24),
+                  Hero(
+                    tag: 'artwork_${artwork.id}',
+                    child: CachedNetworkImage(
+                      imageUrl: artwork.imageUrl!,
+                      fit: BoxFit.cover,
+                      httpHeaders: ArtApi.imageHeaders,
+                      placeholder: (context, url) => Container(color: Colors.grey[900]),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[900],
+                        child: const Icon(Icons.broken_image, color: Colors.white24),
+                      ),
                     ),
                   ),
                 Container(

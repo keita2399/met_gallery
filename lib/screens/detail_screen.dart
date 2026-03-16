@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
@@ -24,9 +25,6 @@ class _DetailScreenState extends State<DetailScreen> {
   String? _translatedOrigin;
   String? _translatedCredit;
   bool _translating = false;
-  final TransformationController _zoomController = TransformationController();
-  double _currentScale = 1.0;
-  bool _fullscreenZoom = false;
   bool _lightSimulation = false;
 
   @override
@@ -97,43 +95,26 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   void _enterZoom() {
-    _currentScale = 1.0;
-    _zoomController.value = Matrix4.identity();
-    setState(() => _fullscreenZoom = true);
-  }
-
-  void _exitZoom() {
-    _currentScale = 1.0;
-    _zoomController.value = Matrix4.identity();
-    setState(() => _fullscreenZoom = false);
-  }
-
-  void _zoomIn() {
-    final size = MediaQuery.of(context).size;
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    _currentScale = (_currentScale * 1.5).clamp(1.0, 8.0);
-    final m = Matrix4.identity();
-    m.storage[0] = _currentScale;
-    m.storage[5] = _currentScale;
-    m.storage[12] = cx - cx * _currentScale;
-    m.storage[13] = cy - cy * _currentScale;
-    _zoomController.value = m;
-    setState(() {});
-  }
-
-  void _zoomOut() {
-    final size = MediaQuery.of(context).size;
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    _currentScale = (_currentScale / 1.5).clamp(1.0, 8.0);
-    final m = Matrix4.identity();
-    m.storage[0] = _currentScale;
-    m.storage[5] = _currentScale;
-    m.storage[12] = cx - cx * _currentScale;
-    m.storage[13] = cy - cy * _currentScale;
-    _zoomController.value = m;
-    setState(() {});
+    final artwork = _detail ?? widget.artwork;
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _FullscreenZoomPage(artwork: artwork);
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final scale = Tween<double>(begin: 0.85, end: 1.0)
+              .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+          final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+          return FadeTransition(
+            opacity: fade,
+            child: ScaleTransition(scale: scale, child: child),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 700),
+        reverseTransitionDuration: const Duration(milliseconds: 550),
+      ),
+    );
   }
 
   bool get _isMobile => MediaQuery.of(context).size.width < 600;
@@ -149,127 +130,6 @@ class _DetailScreenState extends State<DetailScreen> {
       return LightSimulationWidget(
         imageUrl: artwork.imageUrl!,
         onClose: () => setState(() => _lightSimulation = false),
-      );
-    }
-
-    if (_fullscreenZoom) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Stack(
-          children: [
-            // Full screen zoomable image
-            Positioned.fill(
-              child: MouseRegion(
-                cursor: SystemMouseCursors.grab,
-                child: InteractiveViewer(
-                  transformationController: _zoomController,
-                  minScale: 1.0,
-                  maxScale: 8.0,
-                  panEnabled: true,
-                  onInteractionEnd: (details) {
-                    final scale = _zoomController.value.getMaxScaleOnAxis();
-                    setState(() => _currentScale = scale);
-                  },
-                  child: CachedNetworkImage(
-                    imageUrl: artwork.imageUrlHigh ?? artwork.imageUrl!,
-                    fit: BoxFit.contain,
-                    httpHeaders: ArtApi.imageHeaders,
-                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                    errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
-                  ),
-                ),
-              ),
-            ),
-            // Scale indicator
-            if (_currentScale > 1.0)
-              Positioned(
-                top: isMobile ? 16 : 50,
-                left: 24,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    '${_currentScale.toStringAsFixed(1)}x',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                ),
-              ),
-            if (isMobile) ...[
-              // Mobile: Top close button
-              Positioned(
-                top: 16,
-                right: 16,
-                child: _actionButton(icon: Icons.close, label: '', onTap: _exitZoom, compact: true),
-              ),
-              // Mobile: Bottom zoom controls
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.only(top: 8, bottom: 20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _actionButton(icon: Icons.zoom_out, label: '縮小', onTap: _zoomOut, enabled: _currentScale > 1.0, compact: true),
-                      const SizedBox(width: 32),
-                      _actionButton(icon: Icons.zoom_in, label: '拡大', onTap: _zoomIn, compact: true),
-                    ],
-                  ),
-                ),
-              ),
-              // Hint
-              Positioned(
-                bottom: 70,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Text(
-                    'ピンチで拡大縮小・ドラッグで移動',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11),
-                  ),
-                ),
-              ),
-            ] else ...[
-              // PC: Right side zoom controls
-              Positioned(
-                top: 50,
-                right: 40,
-                child: Column(
-                  children: [
-                    _actionButton(icon: Icons.close, label: '戻る', onTap: _exitZoom),
-                    const SizedBox(height: 16),
-                    _actionButton(icon: Icons.zoom_in, label: '拡大', onTap: _zoomIn),
-                    const SizedBox(height: 16),
-                    _actionButton(icon: Icons.zoom_out, label: '縮小', onTap: _zoomOut, enabled: _currentScale > 1.0),
-                  ],
-                ),
-              ),
-              // Hint
-              Positioned(
-                bottom: 24,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Text(
-                    'ドラッグで移動・ホイールで拡大縮小',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
       );
     }
 
@@ -291,12 +151,15 @@ class _DetailScreenState extends State<DetailScreen> {
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
                             onTap: _enterZoom,
-                            child: CachedNetworkImage(
-                              imageUrl: artwork.imageUrlHigh ?? artwork.imageUrl!,
-                              fit: BoxFit.contain,
-                              httpHeaders: ArtApi.imageHeaders,
-                              placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                              errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
+                            child: Hero(
+                              tag: 'artwork_${artwork.id}',
+                              child: CachedNetworkImage(
+                                imageUrl: artwork.imageUrlHigh ?? artwork.imageUrl!,
+                                fit: BoxFit.contain,
+                                httpHeaders: ArtApi.imageHeaders,
+                                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                                errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
+                              ),
                             ),
                           ),
                         )
@@ -551,8 +414,242 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
+}
+
+/// Fullscreen zoom page with fade transition
+class _FullscreenZoomPage extends StatefulWidget {
+  final Artwork artwork;
+  const _FullscreenZoomPage({required this.artwork});
+
+  @override
+  State<_FullscreenZoomPage> createState() => _FullscreenZoomPageState();
+}
+
+class _FullscreenZoomPageState extends State<_FullscreenZoomPage>
+    with TickerProviderStateMixin {
+  final TransformationController _zoomController = TransformationController();
+  double _currentScale = 1.0;
+  AnimationController? _scaleAnimController;
+  AnimationController? _fadeAnimController;
+  double _opacity = 1.0;
+
+  bool get _isMobile => MediaQuery.of(context).size.width < 600;
+
+  void _animateToScale(double targetScale) {
+    final size = MediaQuery.of(context).size;
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    targetScale = targetScale.clamp(1.0, 8.0);
+    if (targetScale == _currentScale) return;
+
+    final startMatrix = _zoomController.value.clone();
+    final endMatrix = Matrix4.identity();
+    endMatrix.storage[0] = targetScale;
+    endMatrix.storage[5] = targetScale;
+    endMatrix.storage[12] = cx - cx * targetScale;
+    endMatrix.storage[13] = cy - cy * targetScale;
+
+    // Scale animation
+    _scaleAnimController?.dispose();
+    _scaleAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    final curve = CurvedAnimation(parent: _scaleAnimController!, curve: Curves.easeInOutCubic);
+    curve.addListener(() {
+      final t = curve.value;
+      final m = Matrix4.identity();
+      for (int i = 0; i < 16; i++) {
+        m.storage[i] = startMatrix.storage[i] + (endMatrix.storage[i] - startMatrix.storage[i]) * t;
+      }
+      _zoomController.value = m;
+    });
+
+    // Fade pulse: 1.0 → 0.82 → 1.0 (breathe effect)
+    _fadeAnimController?.dispose();
+    _fadeAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _fadeAnimController!.addListener(() {
+      final t = _fadeAnimController!.value;
+      // Sine curve: dips to 0.82 at midpoint, returns to 1.0
+      setState(() {
+        _opacity = 1.0 - 0.18 * sin(t * pi);
+      });
+    });
+
+    _scaleAnimController!.forward();
+    _fadeAnimController!.forward();
+    _currentScale = targetScale;
+    setState(() {});
+  }
+
+  void _zoomIn() => _animateToScale(_currentScale * 1.5);
+  void _zoomOut() => _animateToScale(_currentScale / 1.5);
+
+  @override
+  Widget build(BuildContext context) {
+    final artwork = widget.artwork;
+    final isMobile = _isMobile;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Opacity(
+              opacity: _opacity,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.grab,
+                child: InteractiveViewer(
+                transformationController: _zoomController,
+                minScale: 1.0,
+                maxScale: 8.0,
+                panEnabled: true,
+                onInteractionEnd: (details) {
+                  final scale = _zoomController.value.getMaxScaleOnAxis();
+                  setState(() => _currentScale = scale);
+                },
+                child: CachedNetworkImage(
+                  imageUrl: artwork.imageUrlHigh ?? artwork.imageUrl!,
+                  fit: BoxFit.contain,
+                  httpHeaders: ArtApi.imageHeaders,
+                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                  errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
+                ),
+              ),
+            ),
+            ),
+          ),
+          if (_currentScale > 1.0)
+            Positioned(
+              top: isMobile ? 16 : 50,
+              left: 24,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${_currentScale.toStringAsFixed(1)}x',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ),
+            ),
+          if (isMobile) ...[
+            Positioned(
+              top: 16,
+              right: 16,
+              child: _actionButton(icon: Icons.close, label: '', onTap: () => Navigator.pop(context), compact: true),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.only(top: 8, bottom: 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _actionButton(icon: Icons.zoom_out, label: '縮小', onTap: _zoomOut, enabled: _currentScale > 1.0, compact: true),
+                    const SizedBox(width: 32),
+                    _actionButton(icon: Icons.zoom_in, label: '拡大', onTap: _zoomIn, compact: true),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 70,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  'ピンチで拡大縮小・ドラッグで移動',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11),
+                ),
+              ),
+            ),
+          ] else ...[
+            Positioned(
+              top: 50,
+              right: 40,
+              child: Column(
+                children: [
+                  _actionButton(icon: Icons.close, label: '戻る', onTap: () => Navigator.pop(context)),
+                  const SizedBox(height: 16),
+                  _actionButton(icon: Icons.zoom_in, label: '拡大', onTap: _zoomIn),
+                  const SizedBox(height: 16),
+                  _actionButton(icon: Icons.zoom_out, label: '縮小', onTap: _zoomOut, enabled: _currentScale > 1.0),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 24,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  'ドラッグで移動・ホイールで拡大縮小',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool enabled = true,
+    bool compact = false,
+  }) {
+    return MouseRegion(
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(compact ? 8 : 10),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: enabled ? Colors.white : Colors.white30, size: compact ? 20 : 22),
+            ),
+            if (label.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: enabled ? Colors.white70 : Colors.white24,
+                  fontSize: compact ? 10 : 11,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _scaleAnimController?.dispose();
+    _fadeAnimController?.dispose();
     _zoomController.dispose();
     super.dispose();
   }

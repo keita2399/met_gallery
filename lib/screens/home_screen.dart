@@ -16,7 +16,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   Artwork? _todayArtwork;
   bool _loading = true;
   String? _error;
@@ -24,10 +24,17 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _translatedTitle;
   String? _translatedDescription;
   bool _isFavorite = false;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
+    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
     _loadTodayArtwork();
   }
 
@@ -40,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _todayArtwork = works[dayIndex];
           _loading = false;
         });
+        _fadeController.forward();
         _translateArtwork(works[dayIndex]);
         final fav = await FirestoreService.isFavorite(works[dayIndex].id);
         if (mounted) setState(() => _isFavorite = fav);
@@ -87,6 +95,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
   Widget _buildHome() {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
@@ -115,13 +129,16 @@ class _HomeScreenState extends State<HomeScreen> {
         fit: StackFit.expand,
         children: [
           if (artwork.imageUrl != null)
-            CachedNetworkImage(
-              imageUrl: artwork.imageUrl!,
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-              httpHeaders: ArtApi.imageHeaders,
-              placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-              errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
+            Hero(
+              tag: 'artwork_${artwork.id}',
+              child: CachedNetworkImage(
+                imageUrl: artwork.imageUrl!,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                httpHeaders: ArtApi.imageHeaders,
+                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 64)),
+              ),
             ),
           // Gradient overlay
           Positioned(
@@ -177,12 +194,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          // Bottom info
+          // Bottom info (fade in + slide up)
           Positioned(
             bottom: 80,
             left: 16,
             right: 16,
-            child: Column(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SlideTransition(
+                position: _slideAnim,
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (_translatedTitle != null) ...[
@@ -257,6 +278,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+          ),
+          ),
           ),
         ],
       ),
