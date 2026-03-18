@@ -3,12 +3,8 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb, listEquals;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:sensors_plus/sensors_plus.dart';
 import '../services/art_api.dart';
-import '../services/motion_permission_stub.dart'
-    if (dart.library.js_interop) '../services/motion_permission_web.dart';
 
 /// Light simulation widget using Fragment Shader
 /// Native only - not supported on Web
@@ -67,148 +63,10 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
   // Frame shadow
   bool _frameShadowEnabled = false;
 
-  // Sensor mode
-  bool _sensorMode = false;
-  bool _sensorAvailable = false;
-  bool _orientationLocked = false;
-  StreamSubscription? _sensorSub;
-  double _filteredX = 0.0;
-  double _filteredY = 0.0;
-
   @override
   void initState() {
     super.initState();
     _loadResources();
-    _checkSensor();
-  }
-
-  Future<void> _checkSensor() async {
-    if (kIsWeb) {
-      // On web, show tilt button on mobile-sized screens.
-      // Actual permission is requested when user activates tilt mode.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          final size = MediaQuery.of(context).size;
-          if (size.shortestSide < 700) {
-            setState(() => _sensorAvailable = true);
-          }
-        }
-      });
-      return;
-    }
-    // Native: probe for real sensor data
-    try {
-      bool gotData = false;
-      final sub = accelerometerEventStream().listen((event) {
-        if (event.x.abs() > 0.1 || event.y.abs() > 0.1 || event.z.abs() > 0.1) {
-          gotData = true;
-        }
-      });
-      await Future.delayed(const Duration(milliseconds: 500));
-      await sub.cancel();
-      if (mounted && gotData) setState(() => _sensorAvailable = true);
-    } catch (_) {}
-  }
-
-  Future<void> _startSensorMode() async {
-    if (!_sensorAvailable) return;
-
-    // Switch to sensor mode UI FIRST so errors are visible on screen
-    _sensorMode = true;
-    _userTouched = true;
-    _showControls = false;
-    _demoController?.stop();
-    setState(() => _showIntro = false);
-
-    try {
-      // On web (iOS Safari), request DeviceMotion permission
-      if (kIsWeb) {
-        bool granted = false;
-        try {
-          granted = await requestMotionPermission();
-        } catch (_) {
-          return;
-        }
-        if (!mounted) return;
-        if (!granted) return;
-      }
-
-      // Try to lock screen orientation
-      if (kIsWeb) {
-        try {
-          _orientationLocked = await tryLockOrientation();
-        } catch (_) {
-          _orientationLocked = false;
-        }
-      } else {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-        _orientationLocked = true;
-      }
-
-      if (!mounted) return;
-
-      if (kIsWeb) {
-        // Web: use direct JS DeviceMotion API
-        final controller = startDeviceMotionListener();
-        _sensorSub = controller.stream.listen((data) {
-          if (!mounted || !_sensorMode) return;
-          final (rawX, rawY, _) = data;
-          // Adapt axes based on current screen orientation
-          final orientation = MediaQuery.of(context).orientation;
-          double x, y;
-          if (orientation == Orientation.landscape) {
-            // Landscape: swap and invert axes
-            x = rawY;
-            y = -rawX;
-          } else {
-            x = rawX;
-            y = rawY;
-          }
-          const alpha = 0.15;
-          _filteredX = _filteredX * (1 - alpha) + x * alpha;
-          _filteredY = _filteredY * (1 - alpha) + y * alpha;
-
-          final nx = (0.5 - _filteredX / 8.0).clamp(0.0, 1.0);
-          final ny = (0.5 - _filteredY / 8.0).clamp(0.0, 1.0);
-
-          setState(() {
-            _lightPositions[_activeLightIndex] = Offset(nx, ny);
-          });
-        });
-      } else {
-        // Native: use sensors_plus
-        _sensorSub = accelerometerEventStream(
-          samplingPeriod: const Duration(milliseconds: 30),
-        ).listen((event) {
-          if (!mounted || !_sensorMode) return;
-          const alpha = 0.15;
-          _filteredX = _filteredX * (1 - alpha) + event.x * alpha;
-          _filteredY = _filteredY * (1 - alpha) + event.y * alpha;
-
-          final nx = (0.5 - _filteredX / 8.0).clamp(0.0, 1.0);
-          final ny = (0.5 - _filteredY / 8.0).clamp(0.0, 1.0);
-
-          setState(() {
-            _lightPositions[_activeLightIndex] = Offset(nx, ny);
-          });
-        });
-      }
-    } catch (_) {
-      // Sensor failed silently - user can still use touch
-    }
-  }
-
-  void _stopSensorMode() {
-    _sensorSub?.cancel();
-    _sensorSub = null;
-    _sensorMode = false;
-    if (kIsWeb) {
-      stopDeviceMotionListener();
-      if (_orientationLocked) unlockOrientation();
-    } else {
-      SystemChrome.setPreferredOrientations([]);
-    }
-    _orientationLocked = false;
   }
 
   void _startDemo() {
@@ -242,10 +100,6 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
   }
 
   void _onUserTouch(Offset localPos, Size boxSize) {
-    if (_sensorMode) {
-      _stopSensorMode();
-      setState(() {});
-    }
     if (!_userTouched) {
       _userTouched = true;
       _demoController?.stop();
@@ -394,10 +248,6 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
 
   @override
   void dispose() {
-    _sensorSub?.cancel();
-    if (_sensorMode) {
-      SystemChrome.setPreferredOrientations([]);
-    }
     _shader?.dispose();
     _image?.dispose();
     _demoController?.dispose();
@@ -550,9 +400,7 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
                                 color: Colors.white.withValues(alpha: 0.8), size: 48),
                             const SizedBox(height: 16),
                             Text(
-                              _sensorAvailable
-                                  ? '画面をなぞると光の位置が変わります\n端末を傾けても操作できます'
-                                  : '画面をなぞると\n光の位置が変わります',
+                              '画面をなぞると\n光の位置が変わります',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.9),
@@ -570,92 +418,31 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
               ),
             ),
 
-          // --- Sensor (tilt) mode: minimal UI ---
-          if (_sensorMode) ...[
-            // "Tap to exit" hint at bottom
-            Positioned(
-              bottom: 40,
-              left: 0,
-              right: 0,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  _stopSensorMode();
-                  setState(() => _showControls = true);
-                },
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.screen_rotation, color: Colors.amber.withValues(alpha: 0.8), size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          '傾き操作中  ─  タップで終了',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+          // Close button (top-right)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 16,
+            child: _controlButton(
+              icon: Icons.close,
+              label: '戻る',
+              onTap: widget.onClose,
             ),
-            // Close button only
+          ),
+
+          // Settings toggle (top-left)
+          if (_userTouched)
             Positioned(
               top: MediaQuery.of(context).padding.top + 8,
-              right: 16,
+              left: 16,
               child: _controlButton(
-                icon: Icons.close,
-                label: '戻る',
-                onTap: widget.onClose,
-              ),
-            ),
-          ] else ...[
-            // --- Normal mode: full UI ---
-            // Close button (top-right)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 8,
-              right: 16,
-              child: _controlButton(
-                icon: Icons.close,
-                label: '戻る',
-                onTap: widget.onClose,
+                icon: Icons.tune,
+                label: '調整',
+                onTap: () => setState(() => _showControls = !_showControls),
               ),
             ),
 
-            // Settings toggle + sensor button (top-left)
-            if (_userTouched)
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 8,
-                left: 16,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _controlButton(
-                      icon: Icons.tune,
-                      label: '調整',
-                      onTap: () => setState(() => _showControls = !_showControls),
-                    ),
-                    if (_sensorAvailable) ...[
-                      const SizedBox(width: 8),
-                      _controlButton(
-                        icon: Icons.touch_app,
-                        label: '傾き操作',
-                        onTap: () => _startSensorMode(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-          ],
-
-          // Control panel (bottom) - hidden during sensor mode
-          if (_showControls && _userTouched && !_sensorMode)
+          // Control panel (bottom)
+          if (_showControls && _userTouched)
             Positioned(
               bottom: 20,
               left: 24,
