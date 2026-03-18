@@ -115,7 +115,7 @@ class _DetailScreenState extends State<DetailScreen> {
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) {
-          return _FullscreenZoomPage(artwork: artwork);
+          return FullscreenZoomPage(artwork: artwork);
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final scale = Tween<double>(begin: 0.85, end: 1.0)
@@ -155,6 +155,7 @@ class _DetailScreenState extends State<DetailScreen> {
       return LightSimulationWidget(
         imageUrl: artwork.imageUrl!,
         onClose: () => setState(() => _lightSimulation = false),
+        artwork: artwork,
       );
     }
 
@@ -540,15 +541,15 @@ class _DetailScreenState extends State<DetailScreen> {
 }
 
 /// Fullscreen zoom page with fade transition
-class _FullscreenZoomPage extends StatefulWidget {
+class FullscreenZoomPage extends StatefulWidget {
   final Artwork artwork;
-  const _FullscreenZoomPage({required this.artwork});
+  const FullscreenZoomPage({required this.artwork});
 
   @override
-  State<_FullscreenZoomPage> createState() => _FullscreenZoomPageState();
+  State<FullscreenZoomPage> createState() => FullscreenZoomPageState();
 }
 
-class _FullscreenZoomPageState extends State<_FullscreenZoomPage>
+class FullscreenZoomPageState extends State<FullscreenZoomPage>
     with TickerProviderStateMixin {
   final TransformationController _zoomController = TransformationController();
   double _currentScale = 1.0;
@@ -610,6 +611,29 @@ class _FullscreenZoomPageState extends State<_FullscreenZoomPage>
 
   void _zoomIn() => _animateToScale(_currentScale * 1.5);
   void _zoomOut() => _animateToScale(_currentScale / 1.5);
+
+  void _switchToLight() {
+    final artwork = widget.artwork;
+    if (artwork.imageUrl == null) return;
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return LightSimulationWidget(
+            imageUrl: artwork.imageUrl!,
+            onClose: () => Navigator.pop(context),
+            artwork: artwork,
+            initialScale: _currentScale,
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+          return FadeTransition(opacity: fade, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -684,8 +708,10 @@ class _FullscreenZoomPageState extends State<_FullscreenZoomPage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _actionButton(icon: Icons.zoom_out, label: '縮小', onTap: _zoomOut, enabled: _currentScale > 1.0, compact: true),
-                    const SizedBox(width: 32),
+                    const SizedBox(width: 24),
                     _actionButton(icon: Icons.zoom_in, label: '拡大', onTap: _zoomIn, compact: true),
+                    const SizedBox(width: 24),
+                    _actionButton(icon: Icons.wb_sunny_outlined, label: '光', onTap: _switchToLight, compact: true),
                   ],
                 ),
               ),
@@ -712,6 +738,8 @@ class _FullscreenZoomPageState extends State<_FullscreenZoomPage>
                   _actionButton(icon: Icons.zoom_in, label: '拡大', onTap: _zoomIn),
                   const SizedBox(height: 16),
                   _actionButton(icon: Icons.zoom_out, label: '縮小', onTap: _zoomOut, enabled: _currentScale > 1.0),
+                  const SizedBox(height: 16),
+                  _actionButton(icon: Icons.wb_sunny_outlined, label: '光', onTap: _switchToLight),
                 ],
               ),
             ),

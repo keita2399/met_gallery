@@ -7,15 +7,18 @@ import 'package:http/http.dart' as http;
 import '../services/art_api.dart';
 
 /// Light simulation widget using Fragment Shader
-/// Native only - not supported on Web
 class LightSimulationWidget extends StatefulWidget {
   final String imageUrl;
   final VoidCallback onClose;
+  final dynamic artwork;
+  final double initialScale;
 
   const LightSimulationWidget({
     super.key,
     required this.imageUrl,
     required this.onClose,
+    this.artwork,
+    this.initialScale = 1.0,
   });
 
   @override
@@ -34,10 +37,18 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
   final List<double> _lightIntensities = [0.8];
   int _activeLightIndex = 0;
 
+  // Notifier: triggers CustomPaint repaint without rebuilding InteractiveViewer
+  final ValueNotifier<int> _lightNotifier = ValueNotifier<int>(0);
+  void _notifyLightChange() => _lightNotifier.value++;
+
   // Shared light parameters
   double _lightRadius = 0.8;
   double _ambient = 0.3;
   bool _showControls = true;
+
+  // Zoom
+  final TransformationController _zoomController = TransformationController();
+  double _currentScale = 1.0;
   bool _showIntro = true;
   bool _userTouched = false;
 
@@ -67,6 +78,22 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
   void initState() {
     super.initState();
     _loadResources();
+    if (widget.initialScale > 1.0) {
+      _currentScale = widget.initialScale;
+      // Apply initial zoom after first frame (need screen size)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final size = MediaQuery.of(context).size;
+        final cx = size.width / 2;
+        final cy = size.height / 2;
+        final m = Matrix4.identity();
+        m.storage[0] = _currentScale;
+        m.storage[5] = _currentScale;
+        m.storage[12] = cx - cx * _currentScale;
+        m.storage[13] = cy - cy * _currentScale;
+        _zoomController.value = m;
+      });
+    }
   }
 
   void _startDemo() {
@@ -104,13 +131,13 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
       _userTouched = true;
       _demoController?.stop();
       setState(() => _showIntro = false);
+      return; // First touch: just show controls, don't move light yet
     }
-    setState(() {
-      _lightPositions[_activeLightIndex] = Offset(
-        (localPos.dx / boxSize.width).clamp(0.0, 1.0),
-        (localPos.dy / boxSize.height).clamp(0.0, 1.0),
-      );
-    });
+    _lightPositions[_activeLightIndex] = Offset(
+      (localPos.dx / boxSize.width).clamp(0.0, 1.0),
+      (localPos.dy / boxSize.height).clamp(0.0, 1.0),
+    );
+    _notifyLightChange(); // Repaint only CustomPaint, not InteractiveViewer
   }
 
   // Light indicator colors (one per light source)
@@ -248,6 +275,8 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
 
   @override
   void dispose() {
+    _lightNotifier.dispose();
+    _zoomController.dispose();
     _shader?.dispose();
     _image?.dispose();
     _demoController?.dispose();
@@ -304,37 +333,38 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Canvas layer: light position handler
-          // Uses onTapUp (not onTapDown) so gesture arena resolves first,
-          // preventing buttons from also triggering light movement.
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapUp: (details) {
+          // Canvas: InteractiveViewer for zoom, Listener for light tap
+          _JsonLightTapDetector(
+            onLightTap: (localPos) {
               final box = context.findRenderObject() as RenderBox;
-              _onUserTouch(details.localPosition, box.size);
+              _onUserTouch(localPos, box.size);
             },
-            onPanStart: (details) {
-              final box = context.findRenderObject() as RenderBox;
-              _onUserTouch(details.localPosition, box.size);
-            },
-            onPanUpdate: (details) {
-              final box = context.findRenderObject() as RenderBox;
-              _onUserTouch(details.localPosition, box.size);
-            },
-            child: CustomPaint(
-              painter: _LightingPainter(
-                shader: _shader!,
-                image: _image!,
-                lightPositions: List.unmodifiable(_lightPositions),
-                lightIntensities: List.unmodifiable(_lightIntensities),
-                numLights: _lightPositions.length,
-                lightRadius: _lightRadius,
-                ambient: _ambient,
-                lightColor: _colorPresets[_colorPresetIndex],
-                flicker: _flickerValue,
-                frameShadow: _frameShadowEnabled,
+            child: InteractiveViewer(
+              transformationController: _zoomController,
+              minScale: 1.0,
+              maxScale: 5.0,
+              onInteractionEnd: (details) {
+                _currentScale = _zoomController.value.getMaxScaleOnAxis();
+                setState(() {});
+              },
+              child: ValueListenableBuilder<int>(
+                valueListenable: _lightNotifier,
+                builder: (context, _, __) => CustomPaint(
+                  painter: _LightingPainter(
+                    shader: _shader!,
+                    image: _image!,
+                    lightPositions: List.unmodifiable(_lightPositions),
+                    lightIntensities: List.unmodifiable(_lightIntensities),
+                    numLights: _lightPositions.length,
+                    lightRadius: _lightRadius,
+                    ambient: _ambient,
+                    lightColor: _colorPresets[_colorPresetIndex],
+                    flicker: _flickerValue,
+                    frameShadow: _frameShadowEnabled,
+                  ),
+                ),
               ),
-            ),
+          ),
           ),
 
           // Frame overlay (visible ornate frame around the painting)
@@ -418,7 +448,7 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
               ),
             ),
 
-          // Close button (top-right)
+          // Top-right: close button
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             right: 16,
@@ -428,6 +458,32 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
               onTap: widget.onClose,
             ),
           ),
+
+          // Zoom indicator
+          if (_currentScale > 1.1)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  _zoomController.value = Matrix4.identity();
+                  _currentScale = 1.0;
+                  setState(() {});
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${_currentScale.toStringAsFixed(1)}x  ✕',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                  ),
+                ),
+              ),
+            ),
 
           // Settings toggle (top-left)
           if (_userTouched)
@@ -1014,5 +1070,51 @@ class _FramePainter extends CustomPainter {
   bool shouldRepaint(_FramePainter old) {
     return lightPos != old.lightPos ||
         paintingBounds != old.paintingBounds;
+  }
+}
+
+/// Detects single taps without interfering with InteractiveViewer's pinch/pan.
+/// Only fires if the pointer didn't move more than 10px between down and up.
+class _JsonLightTapDetector extends StatefulWidget {
+  final void Function(Offset localPosition) onLightTap;
+  final Widget child;
+  const _JsonLightTapDetector({required this.onLightTap, required this.child});
+
+  @override
+  State<_JsonLightTapDetector> createState() => _JsonLightTapDetectorState();
+}
+
+class _JsonLightTapDetectorState extends State<_JsonLightTapDetector> {
+  Offset? _downPos;
+  int _pointerCount = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (event) {
+        _pointerCount++;
+        if (_pointerCount == 1) {
+          _downPos = event.localPosition;
+        } else {
+          _downPos = null; // Multi-touch = not a tap
+        }
+      },
+      onPointerUp: (event) {
+        _pointerCount = (_pointerCount - 1).clamp(0, 10);
+        if (_downPos != null && _pointerCount == 0) {
+          final distance = (event.localPosition - _downPos!).distance;
+          if (distance < 15) {
+            widget.onLightTap(event.localPosition);
+          }
+        }
+        if (_pointerCount == 0) _downPos = null;
+      },
+      onPointerCancel: (_) {
+        _pointerCount = (_pointerCount - 1).clamp(0, 10);
+        _downPos = null;
+      },
+      child: widget.child,
+    );
   }
 }
