@@ -7,6 +7,7 @@ import '../services/art_api.dart';
 import '../services/firestore_service.dart';
 import '../services/translate_service.dart';
 import 'detail_screen.dart';
+import 'quiz_screen.dart';
 
 class GachaScreen extends StatefulWidget {
   const GachaScreen({super.key});
@@ -134,14 +135,46 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
       child: Column(
         children: [
           const SizedBox(height: 32),
-          const Text(
-            '今日の名画ガチャ',
-            style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                '今日の名画ガチャ',
+                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          Text(
-            '毎日ひとつ、新しい名画と出会おう',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '毎日ひとつ、新しい名画と出会おう',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizScreen()));
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.quiz, color: Colors.amber, size: 14),
+                      SizedBox(width: 4),
+                      Text('クイズ', style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           if (_history.isNotEmpty) ...[
             const SizedBox(height: 12),

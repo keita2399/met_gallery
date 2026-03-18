@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/artwork.dart';
 import '../services/art_api.dart';
 import '../services/firestore_service.dart';
+import '../services/stats_service.dart';
 import '../services/translate_service.dart';
 import 'detail_screen.dart';
 
@@ -16,17 +17,35 @@ class FavoritesScreen extends StatefulWidget {
 class _FavoritesScreenState extends State<FavoritesScreen> {
   List<Artwork> _favorites = [];
   bool _loading = true;
+  int _totalViews = 0;
+  int _uniqueCount = 0;
+  Map<String, int> _artistViews = {};
 
   @override
   void initState() {
     super.initState();
     _loadFavorites();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final total = await StatsService.getTotalViews();
+    final unique = await StatsService.getUniqueCount();
+    final artists = await StatsService.getArtistViews();
+    if (mounted) {
+      setState(() {
+        _totalViews = total;
+        _uniqueCount = unique;
+        _artistViews = artists;
+      });
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _loadFavorites();
+    _loadStats();
   }
 
   Future<void> _loadFavorites() async {
@@ -80,7 +99,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          // Stats cards
+          if (_totalViews > 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Row(
+                children: [
+                  _statCard('鑑賞数', '$_totalViews回', Icons.visibility),
+                  const SizedBox(width: 8),
+                  _statCard('作品数', '$_uniqueCount点', Icons.palette),
+                  const SizedBox(width: 8),
+                  _statCard('最多画家', _artistViews.isNotEmpty ? TranslateService.translateArtist(_artistViews.keys.first).split('・').last : '-', Icons.person),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
           Expanded(child: _buildContent()),
         ],
       ),
@@ -192,6 +225,28 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         ),
         );
       },
+    );
+  }
+
+  Widget _statCard(String label, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.amber.withValues(alpha: 0.5), size: 18),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 10)),
+          ],
+        ),
+      ),
     );
   }
 

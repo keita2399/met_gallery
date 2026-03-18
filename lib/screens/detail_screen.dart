@@ -8,6 +8,7 @@ import '../models/artwork.dart';
 import '../services/art_api.dart';
 import '../services/color_palette.dart';
 import '../services/similar_works.dart';
+import '../services/stats_service.dart';
 import '../services/translate_service.dart';
 import '../widgets/light_simulation_widget.dart';
 import 'artist_screen.dart';
@@ -41,6 +42,7 @@ class _DetailScreenState extends State<DetailScreen> {
     _loadDetail();
     _extractPalette();
     _loadSimilarWorks();
+    StatsService.recordView(widget.artwork.id, widget.artwork.artist);
   }
 
   Future<void> _loadSimilarWorks() async {
