@@ -153,7 +153,9 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
               ),
               const SizedBox(width: 12),
-              GestureDetector(
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizScreen()));
                 },
@@ -173,7 +175,7 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
                     ],
                   ),
                 ),
-              ),
+              )),
             ],
           ),
           if (_history.isNotEmpty) ...[

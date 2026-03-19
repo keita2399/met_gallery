@@ -4,28 +4,28 @@ import 'package:http/http.dart' as http;
 class TranslateService {
   static final Map<String, String> _cache = {};
 
-  static const Map<String, String> artistNames = {
-    // 印象派
-    'Claude Monet': 'クロード・モネ',
-    'Pierre-Auguste Renoir': 'ピエール＝オーギュスト・ルノワール',
-    'Edgar Degas': 'エドガー・ドガ',
-    'Camille Pissarro': 'カミーユ・ピサロ',
-    'Alfred Sisley': 'アルフレッド・シスレー',
-    'Berthe Morisot': 'ベルト・モリゾ',
-    'Gustave Caillebotte': 'ギュスターヴ・カイユボット',
-    // ポスト印象派
-    'Vincent van Gogh': 'フィンセント・ファン・ゴッホ',
-    'Paul Cézanne': 'ポール・セザンヌ',
-    'Paul Gauguin': 'ポール・ゴーギャン',
-    'Georges Seurat': 'ジョルジュ・スーラ',
-    'Henri de Toulouse-Lautrec': 'アンリ・ド・トゥールーズ＝ロートレック',
-    'Paul Signac': 'ポール・シニャック',
-    'Édouard Manet': 'エドゥアール・マネ',
-    'Mary Cassatt': 'メアリー・カサット',
-  };
+  /// アーティスト名の翻訳（キャッシュ付き、Google翻訳APIを使用）
+  static final Map<String, String> _artistCache = {};
 
   static String translateArtist(String name) {
-    return artistNames[name] ?? name;
+    if (_artistCache.containsKey(name)) return _artistCache[name]!;
+    // 非同期翻訳をトリガー（結果はキャッシュされ次回から使われる）
+    _translateArtistAsync(name);
+    return name; // 初回はそのまま返す
+  }
+
+  static Future<void> _translateArtistAsync(String name) async {
+    if (_artistCache.containsKey(name)) return;
+    final translated = await toJapanese(name);
+    _artistCache[name] = translated;
+  }
+
+  /// アーティスト名を非同期で翻訳して返す
+  static Future<String> translateArtistAsync(String name) async {
+    if (_artistCache.containsKey(name)) return _artistCache[name]!;
+    final translated = await toJapanese(name);
+    _artistCache[name] = translated;
+    return translated;
   }
 
   static Future<String> toJapanese(String text) async {

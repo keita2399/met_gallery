@@ -245,7 +245,9 @@ class _DetailScreenState extends State<DetailScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          GestureDetector(
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
                             onTap: () {
                               final profile = ArtistProfile.byName(artwork.artist);
                               if (profile != null) {
@@ -276,7 +278,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                 ],
                               ),
                             ),
-                          ),
+                          )),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
@@ -294,7 +296,9 @@ class _DetailScreenState extends State<DetailScreen> {
                         if (_translatedDescription != null || !_translating)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: GestureDetector(
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
                               onTap: () async {
                                 if (_isSpeaking) {
                                   stopSpeaking();
@@ -342,7 +346,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                   ],
                                 ),
                               ),
-                            ),
+                            )),
                           ),
                         if (_translatedDescription != null)
                           Text(
@@ -449,7 +453,9 @@ class _DetailScreenState extends State<DetailScreen> {
                               itemBuilder: (context, index) {
                                 final sw = _similarWorks[index];
                                 final simPercent = (sw.similarity * 100).round();
-                                return GestureDetector(
+                                return MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
                                   onTap: () {
                                     Navigator.push(
                                       context,
@@ -517,7 +523,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                       ],
                                     ),
                                   ),
-                                );
+                                ));
                               },
                             ),
                           ),

@@ -3,89 +3,97 @@ import 'package:http/http.dart' as http;
 import '../models/artwork.dart';
 
 class ArtApi {
-  static const _baseUrl = 'https://api.artic.edu/api/v1';
-  static const _fields = 'id,title,artist_title,date_display,image_id,thumbnail,style_titles';
+  static const _baseUrl = 'https://collectionapi.metmuseum.org/public/collection/v1';
 
-  /// IIIF画像サーバーのCloudflare制限を回避するためのヘッダー
-  static const imageHeaders = <String, String>{
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-  };
+  /// Met Museum APIは画像URLを直接返すのでヘッダー不要
+  static const imageHeaders = <String, String>{};
 
-  static const impressionistArtists = [
-    // 印象派
-    'Claude Monet',
-    'Pierre-Auguste Renoir',
-    'Edgar Degas',
-    'Camille Pissarro',
-    'Alfred Sisley',
-    'Berthe Morisot',
-    'Gustave Caillebotte',
-    // ポスト印象派
-    'Vincent van Gogh',
-    'Paul Cézanne',
-    'Paul Gauguin',
-    'Georges Seurat',
-    'Henri de Toulouse-Lautrec',
-    'Paul Signac',
-    'Édouard Manet',
-    'Mary Cassatt',
-  ];
-
-  static Future<List<Artwork>> fetchImpressionistWorks({
-    int page = 1,
-    int limit = 100,
-    String? artistFilter,
+  /// 検索用: オブジェクトIDリストを取得
+  static Future<List<int>> searchObjectIds({
+    String? query,
+    int? departmentId,
+    bool hasImages = true,
+    bool isPublicDomain = true,
+    bool isHighlight = false,
   }) async {
-    final url = Uri.parse('$_baseUrl/artworks/search?fields=$_fields&page=$page&limit=$limit');
+    final params = <String, String>{};
+    if (hasImages) params['hasImages'] = 'true';
+    if (isPublicDomain) params['isPublicDomain'] = 'true';
+    if (isHighlight) params['isHighlight'] = 'true';
+    if (departmentId != null) params['departmentId'] = departmentId.toString();
+    // qは必須パラメータ
+    params['q'] = query ?? '*';
 
-    final artists = artistFilter != null ? [artistFilter] : impressionistArtists;
-
-    final body = jsonEncode({
-      "query": {
-        "bool": {
-          "must": [
-            {"terms": {"artist_title.keyword": artists}},
-            {"term": {"is_public_domain": true}},
-            {"exists": {"field": "image_id"}},
-          ]
-        }
-      }
-    });
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'ImpressionGallery/1.0 (Flutter App)',
-      },
-      body: body,
-    );
+    final url = Uri.parse('$_baseUrl/search').replace(queryParameters: params);
+    final response = await http.get(url);
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to fetch artworks: ${response.statusCode}');
+      throw Exception('Failed to search: ${response.statusCode}');
     }
 
     final data = jsonDecode(response.body);
-    final List<dynamic> items = data['data'] ?? [];
-
-    return items
-        .map((json) => Artwork.fromJson(json as Map<String, dynamic>))
-        .where((a) => a.imageId != null)
-        .toList();
+    final List<dynamic>? ids = data['objectIDs'];
+    return ids?.cast<int>() ?? [];
   }
 
+  /// 作品詳細を取得
   static Future<Artwork?> fetchArtworkDetail(int id) async {
-    final url = Uri.parse('$_baseUrl/artworks/$id?fields=$_fields,description,publication_history,exhibition_history,place_of_origin,medium_display,dimensions,credit_line');
+    final url = Uri.parse('$_baseUrl/objects/$id');
+    final response = await http.get(url);
 
-    final response = await http.get(url, headers: {
-      'User-Agent': 'ImpressionGallery/1.0 (Flutter App)',
-    });
     if (response.statusCode != 200) return null;
 
     final data = jsonDecode(response.body);
-    final artData = data['data'] as Map<String, dynamic>?;
-    if (artData == null) return null;
+    if (data['objectID'] == null) return null;
 
-    return Artwork.fromDetailJson(artData);
+    return Artwork.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// メイン取得メソッド: ハイライト作品を並列取得
+  static Future<List<Artwork>> fetchHighlights({
+    int? departmentId,
+    String? query,
+    int limit = 80,
+  }) async {
+    final ids = await searchObjectIds(
+      query: query ?? '*',
+      departmentId: departmentId,
+      isHighlight: true,
+    );
+
+    return _fetchArtworksByIds(ids, limit: limit);
+  }
+
+  /// 公開ドメイン作品を取得
+  static Future<List<Artwork>> fetchPublicDomainWorks({
+    String? query,
+    int? departmentId,
+    int limit = 100,
+  }) async {
+    final ids = await searchObjectIds(
+      query: query ?? '*',
+      departmentId: departmentId,
+    );
+
+    return _fetchArtworksByIds(ids, limit: limit);
+  }
+
+  /// IDリストから並列で作品詳細を取得（10件ずつバッチ）
+  static Future<List<Artwork>> _fetchArtworksByIds(List<int> ids, {int limit = 80}) async {
+    final targetIds = ids.take(limit).toList();
+    final artworks = <Artwork>[];
+
+    for (var i = 0; i < targetIds.length; i += 10) {
+      final batch = targetIds.skip(i).take(10);
+      final futures = batch.map((id) => fetchArtworkDetail(id));
+      final results = await Future.wait(futures);
+      for (final artwork in results) {
+        if (artwork != null && artwork.imageUrl != null && artwork.imageUrl!.isNotEmpty) {
+          artworks.add(artwork);
+        }
+      }
+    }
+
+    return artworks;
   }
 }

@@ -1,8 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'services/firestore_service.dart';
 import 'services/art_api.dart';
 import 'screens/home_screen.dart';
 import 'screens/detail_screen.dart';
@@ -10,8 +7,6 @@ import 'widgets/install_prompt_stub.dart' if (dart.library.js_interop) 'widgets/
 
 int? _getArtworkIdFromUrl() {
   if (!kIsWeb) return null;
-  // Web: URLのクエリパラメータから作品IDを取得
-  // Uri.baseはFlutterが提供するクロスプラットフォームAPI
   final idParam = Uri.base.queryParameters['id'];
   if (idParam != null) {
     return int.tryParse(idParam);
@@ -22,32 +17,24 @@ int? _getArtworkIdFromUrl() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initInstallPrompt();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  // Anonymous sign-in and sync favorites
-  await FirestoreService.signInAnonymously();
-  await FirestoreService.syncLocalToCloud();
-  await FirestoreService.syncCloudToLocal();
 
-  // URLパラメータから作品IDを取得（LINEからのディープリンク対応）
   final artworkId = _getArtworkIdFromUrl();
 
-  runApp(ImpressionGalleryApp(artworkId: artworkId));
+  runApp(MetGalleryApp(artworkId: artworkId));
 }
 
-class ImpressionGalleryApp extends StatelessWidget {
+class MetGalleryApp extends StatelessWidget {
   final int? artworkId;
-  const ImpressionGalleryApp({super.key, this.artworkId});
+  const MetGalleryApp({super.key, this.artworkId});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '印象派さんぽ',
+      title: 'メトロポリタンさんぽ',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E),
+          seedColor: const Color(0xFF8B0000), // Met Museumの赤
           brightness: Brightness.dark,
         ),
         scaffoldBackgroundColor: Colors.black,
@@ -60,7 +47,6 @@ class ImpressionGalleryApp extends StatelessWidget {
   }
 }
 
-/// ディープリンクで作品IDを受け取った時の画面
 class DeepLinkScreen extends StatefulWidget {
   final int artworkId;
   const DeepLinkScreen({super.key, required this.artworkId});
@@ -70,8 +56,6 @@ class DeepLinkScreen extends StatefulWidget {
 }
 
 class _DeepLinkScreenState extends State<DeepLinkScreen> {
-  bool _loading = true;
-
   @override
   void initState() {
     super.initState();
@@ -82,7 +66,6 @@ class _DeepLinkScreenState extends State<DeepLinkScreen> {
     try {
       final artwork = await ArtApi.fetchArtworkDetail(widget.artworkId);
       if (artwork != null && mounted) {
-        setState(() => _loading = false);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(

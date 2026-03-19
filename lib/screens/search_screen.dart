@@ -116,7 +116,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     final jaTitle = _translatedTitles[artwork.id];
                     final jaArtist = TranslateService.translateArtist(artwork.artist);
 
-                    return ListTile(
+                    return MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
                       leading: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
@@ -156,7 +158,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           MaterialPageRoute(fullscreenDialog: true, builder: (_) => DetailScreen(artwork: artwork)),
                         );
                       },
-                    );
+                    ));
                   },
                 ),
     );

@@ -241,7 +241,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                     flex: 3,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: GestureDetector(
+                      child: MouseRegion(
+                        cursor: _answered ? SystemMouseCursors.click : SystemMouseCursors.basic,
+                        child: GestureDetector(
                         onTap: _answered ? () {
                           Navigator.push(context, MaterialPageRoute(
                             fullscreenDialog: true,
@@ -292,7 +294,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                             ],
                           ),
                         ),
-                      ),
+                      )),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -311,7 +313,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                               padding: const EdgeInsets.only(bottom: 8),
                               child: FadeTransition(
                                 opacity: _resultFade,
-                                child: GestureDetector(
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
                                   onTap: _nextQuestion,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
@@ -322,7 +326,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                                     ),
                                     child: const Text('次の問題 →', style: TextStyle(color: Colors.amber, fontSize: 15, fontWeight: FontWeight.w600)),
                                   ),
-                                ),
+                                )),
                               ),
                             ),
                           ],
@@ -416,7 +420,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: GestureDetector(
+      child: MouseRegion(
+        cursor: _answered ? SystemMouseCursors.basic : SystemMouseCursors.click,
+        child: GestureDetector(
         onTap: () => _answer(artist),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -441,7 +447,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

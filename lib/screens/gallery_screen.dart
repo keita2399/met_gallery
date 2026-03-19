@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
-import '../models/artist.dart';
 import '../models/artwork.dart';
 import '../services/art_api.dart';
 import '../services/bgm_service.dart';
 import '../services/firestore_service.dart';
 import '../services/translate_service.dart';
-import 'artist_screen.dart';
 import 'detail_screen.dart';
 
 class GalleryScreen extends StatefulWidget {
@@ -44,9 +42,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
     _favoriteIds = await FirestoreService.getFavoriteIds();
 
     try {
-      final works = await ArtApi.fetchImpressionistWorks(
-        limit: 100,
-        artistFilter: _selectedArtist,
+      final works = await ArtApi.fetchHighlights(
+        limit: 80,
+        query: _selectedArtist,
       );
       setState(() {
         _artworks = works;
@@ -125,42 +123,41 @@ class _GalleryScreenState extends State<GalleryScreen> {
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('画家で絞り込み', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              _filterChip('すべての画家', null),
-              ...ArtApi.impressionistArtists.map((a) => _filterChip(TranslateService.translateArtist(a), a)),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('キーワードで絞り込み', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                _filterChip('すべて', null),
+                _filterChip('絵画 (Paintings)', 'painting'),
+                _filterChip('彫刻 (Sculpture)', 'sculpture'),
+                _filterChip('写真 (Photographs)', 'photograph'),
+                _filterChip('日本美術 (Japanese)', 'japanese'),
+                _filterChip('エジプト (Egyptian)', 'egyptian'),
+                _filterChip('ギリシャ・ローマ (Greek Roman)', 'greek roman'),
+                _filterChip('中世 (Medieval)', 'medieval'),
+                _filterChip('現代美術 (Modern)', 'modern art'),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _filterChip(String label, String? artist) {
-    final selected = _selectedArtist == artist;
-    final profile = artist != null ? ArtistProfile.byName(artist) : null;
+  Widget _filterChip(String label, String? query) {
+    final selected = _selectedArtist == query;
     return ListTile(
       title: Text(label, style: TextStyle(color: selected ? Colors.amber : Colors.white70)),
       leading: Icon(
         selected ? Icons.radio_button_checked : Icons.radio_button_off,
         color: selected ? Colors.amber : Colors.white30,
       ),
-      trailing: profile != null
-          ? GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => ArtistScreen(artist: profile)));
-              },
-              child: Icon(Icons.info_outline, color: Colors.white.withValues(alpha: 0.3), size: 20),
-            )
-          : null,
       onTap: () {
         Navigator.pop(context);
-        if (_selectedArtist != artist) {
-          _selectedArtist = artist;
+        if (_selectedArtist != query) {
+          _selectedArtist = query;
           _loadData();
         }
       },
@@ -452,7 +449,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         final jaTitle = translatedTitle ?? artwork.title;
         SharePlus.instance.share(
           ShareParams(
-            text: '$jaTitle\n$jaArtist（${artwork.date}）\n\nhttps://www.artic.edu/artworks/${artwork.id}',
+            text: '$jaTitle\n$jaArtist（${artwork.date}）\n\nhttps://www.metmuseum.org/art/collection/search/${artwork.id}',
           ),
         );
       },

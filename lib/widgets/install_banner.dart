@@ -98,7 +98,9 @@ class _InstallBannerState extends State<InstallBanner> {
               style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
             ),
           ),
-          GestureDetector(
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
             onTap: _install,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -108,12 +110,14 @@ class _InstallBannerState extends State<InstallBanner> {
               ),
               child: const Text('追加', style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
             ),
-          ),
+          )),
           const SizedBox(width: 8),
-          GestureDetector(
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
             onTap: _dismiss,
             child: Icon(Icons.close, color: Colors.white.withValues(alpha: 0.3), size: 18),
-          ),
+          )),
         ],
       ),
     );
