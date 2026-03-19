@@ -27,7 +27,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _loadAll() async {
     try {
-      final works = await ArtApi.fetchImpressionistWorks(limit: 100);
+      final works = await ArtApi.fetchHighlights(limit: 80);
       setState(() {
         _allWorks = works;
         _results = works;

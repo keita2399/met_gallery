@@ -58,7 +58,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   Future<void> _loadData() async {
     try {
-      final works = await ArtApi.fetchImpressionistWorks(limit: 100);
+      final works = await ArtApi.fetchHighlights(limit: 80);
       setState(() {
         _allWorks = works.where((w) => w.imageUrl != null).toList();
         _loading = false;
@@ -83,7 +83,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     final work = _allWorks[_random.nextInt(_allWorks.length)];
     final correctArtist = work.artist;
 
-    final otherArtists = ArtApi.impressionistArtists
+    final otherArtists = _allWorks
+        .map((w) => w.artist)
+        .toSet()
         .where((a) => a != correctArtist)
         .toList()
       ..shuffle(_random);

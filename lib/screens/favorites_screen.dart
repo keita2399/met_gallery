@@ -59,7 +59,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     try {
-      final allWorks = await ArtApi.fetchImpressionistWorks(limit: 100);
+      final allWorks = await ArtApi.fetchHighlights(limit: 80);
       setState(() {
         _favorites = allWorks.where((a) => favSet.contains(a.id)).toList();
         _loading = false;
