@@ -15,22 +15,22 @@ class BgmService {
   int _currentIndex = 0;
   bool _playing = false;
 
-  // Archive.org public domain recordings
+  // Vercelにホストされた著作権フリー音源
   static const tracks = <BgmTrack>[
     BgmTrack(
       title: 'ジムノペディ 第1番',
       composer: 'エリック・サティ',
-      url: 'https://archive.org/download/SatieGymnopedieNo.1./Satie-Gymnopedie%20No.%201..mp3',
+      url: 'audio/gymnopedia.mp3',
     ),
     BgmTrack(
       title: '月の光',
       composer: 'クロード・ドビュッシー',
-      url: 'https://archive.org/download/ClairDeLune_201412/Clair%20de%20Lune.mp3',
+      url: 'audio/clair_de_lune.mp3',
     ),
     BgmTrack(
       title: 'アラベスク 第1番・第2番',
       composer: 'クロード・ドビュッシー',
-      url: 'https://archive.org/download/DebussyArabesqueNo.1AndNo.2/Debussy%20-%20Arabesque%20No.1%20and%20No.2.mp3',
+      url: 'audio/arabesque.mp3',
     ),
   ];
 
