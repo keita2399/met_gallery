@@ -21,6 +21,11 @@ void main() async {
   final artworkId = _getArtworkIdFromUrl();
 
   runApp(MetGalleryApp(artworkId: artworkId));
+
+  // 最初のフレーム描画後にスプラッシュ画面を削除
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    removeSplash();
+  });
 }
 
 class MetGalleryApp extends StatelessWidget {

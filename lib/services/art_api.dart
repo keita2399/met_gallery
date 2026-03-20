@@ -8,6 +8,26 @@ class ArtApi {
   /// Met Museum APIは画像URLを直接返すのでヘッダー不要
   static const imageHeaders = <String, String>{};
 
+  /// HTTP GETリクエスト（Imperva CDNチャレンジ対策付き）
+  /// HTMLが返ってきた場合は最大3回リトライ
+  static Future<http.Response> _get(Uri url) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final response = await http.get(url);
+      if (response.statusCode != 200) return response;
+
+      // Imperva CDNがHTMLチャレンジを返す場合の検出
+      final body = response.body.trimLeft();
+      if (body.startsWith('<') || body.startsWith('<!DOCTYPE')) {
+        // HTMLが返ってきた場合、少し待ってリトライ
+        await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+        continue;
+      }
+      return response;
+    }
+    // 3回リトライしてもダメなら最後のレスポンスを返す
+    return await http.get(url);
+  }
+
   /// 検索用: オブジェクトIDリストを取得
   static Future<List<int>> searchObjectIds({
     String? query,
@@ -25,13 +45,18 @@ class ArtApi {
     params['q'] = query ?? '*';
 
     final url = Uri.parse('$_baseUrl/search').replace(queryParameters: params);
-    final response = await http.get(url);
+    final response = await _get(url);
 
     if (response.statusCode != 200) {
       throw Exception('Failed to search: ${response.statusCode}');
     }
 
-    final data = jsonDecode(response.body);
+    final body = response.body.trimLeft();
+    if (body.startsWith('<')) {
+      throw Exception('API returned HTML instead of JSON (CDN block)');
+    }
+
+    final data = jsonDecode(body);
     final List<dynamic>? ids = data['objectIDs'];
     return ids?.cast<int>() ?? [];
   }
@@ -39,11 +64,14 @@ class ArtApi {
   /// 作品詳細を取得
   static Future<Artwork?> fetchArtworkDetail(int id) async {
     final url = Uri.parse('$_baseUrl/objects/$id');
-    final response = await http.get(url);
+    final response = await _get(url);
 
     if (response.statusCode != 200) return null;
 
-    final data = jsonDecode(response.body);
+    final body = response.body.trimLeft();
+    if (body.startsWith('<')) return null;
+
+    final data = jsonDecode(body);
     if (data['objectID'] == null) return null;
 
     return Artwork.fromJson(data as Map<String, dynamic>);

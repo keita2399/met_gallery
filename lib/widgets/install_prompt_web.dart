@@ -28,6 +28,11 @@ bool isIosSafari() {
   return (result as JSBoolean).toDart;
 }
 
+/// スプラッシュ画面を削除
+void removeSplash() {
+  _eval('if(typeof removeSplashFromWeb==="function")removeSplashFromWeb()'.toJS);
+}
+
 /// Trigger the install prompt (Chrome/Edge only)
 void triggerInstallPrompt() {
   _eval('''

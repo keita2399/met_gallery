@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class Artwork {
   final int id;
   final String title;
@@ -46,9 +48,16 @@ class Artwork {
     );
   }
 
+  /// Web用CORSプロキシ（images.metmuseum.orgはCORSヘッダーなし）
+  static String? _proxyUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (!kIsWeb) return url;
+    return 'https://wsrv.nl/?url=${Uri.encodeComponent(url)}';
+  }
+
   /// Met APIは画像URLを直接返すのでimageUrlはprimaryImageSmallを使用
-  String? get imageUrl => primaryImageSmall;
+  String? get imageUrl => _proxyUrl(primaryImageSmall);
 
   /// 高解像度はprimaryImageを使用
-  String? get imageUrlHigh => primaryImage;
+  String? get imageUrlHigh => _proxyUrl(primaryImage);
 }
