@@ -30,7 +30,7 @@ class _ArtistScreenState extends State<ArtistScreen> with SingleTickerProviderSt
 
   Future<void> _loadWorks() async {
     try {
-      final works = await ArtApi.fetchHighlights(limit: 20, query: widget.artist.name);
+      final works = await artApi.fetchHighlights(limit: 20, query: widget.artist.name);
       if (mounted) {
         setState(() {
           _works = works;

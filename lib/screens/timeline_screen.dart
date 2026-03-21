@@ -26,7 +26,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
 
   Future<void> _loadWorks() async {
     try {
-      final works = await ArtApi.fetchHighlights(limit: 20);
+      final works = await artApi.fetchHighlights(limit: 20);
       final map = <String, Artwork>{};
       for (final w in works) {
         if (w.imageUrl != null && !map.containsKey(w.artist)) {

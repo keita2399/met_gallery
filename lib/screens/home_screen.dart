@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/art_image.dart';
+import '../config/app_config.dart';
 import '../models/artwork.dart';
 import '../services/art_api.dart';
 import '../services/bgm_service.dart';
@@ -44,16 +45,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Future<void> _loadTodayArtwork() async {
     try {
-      // ハイライト作品のIDリストだけ取得（軽量）
-      final ids = await ArtApi.searchObjectIds(isHighlight: true);
-      if (ids.isEmpty) {
+      final works = await artApi.fetchHighlights(limit: 50);
+      if (works.isEmpty) {
         setState(() { _error = '作品が見つかりません'; _loading = false; });
         return;
       }
-      // 日付ベースで1件選んで詳細取得
-      final dayIndex = DateTime.now().day % ids.length;
-      final artwork = await ArtApi.fetchArtworkDetail(ids[dayIndex]);
-      if (artwork != null && mounted) {
+      final dayIndex = DateTime.now().day % works.length;
+      final artwork = works[dayIndex];
+      if (mounted) {
         setState(() {
           _todayArtwork = artwork;
           _loading = false;
@@ -62,8 +61,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         _translateArtwork(artwork);
         final fav = await FirestoreService.isFavorite(artwork.id);
         if (mounted) setState(() => _isFavorite = fav);
-      } else {
-        setState(() { _error = '作品の取得に失敗しました'; _loading = false; });
       }
     } catch (e) {
       setState(() {
@@ -127,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Color(0xFF8B0000)),
+            CircularProgressIndicator(color: appConfig.themeColor),
             const SizedBox(height: 16),
             Text('今日の名画を探しています...', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
           ],

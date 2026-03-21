@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/art_image.dart';
 import 'package:share_plus/share_plus.dart';
+import '../config/app_config.dart';
 import '../models/artwork.dart';
 import '../services/art_api.dart';
 import '../services/bgm_service.dart';
@@ -42,7 +43,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
     _favoriteIds = await FirestoreService.getFavoriteIds();
 
     try {
-      final works = await ArtApi.fetchHighlights(
+      final works = await artApi.fetchHighlights(
         limit: 20,
         query: _selectedArtist,
       );
@@ -129,15 +130,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
               children: [
                 const Text('キーワードで絞り込み', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-                _filterChip('すべて', null),
-                _filterChip('絵画 (Paintings)', 'painting'),
-                _filterChip('彫刻 (Sculpture)', 'sculpture'),
-                _filterChip('写真 (Photographs)', 'photograph'),
-                _filterChip('日本美術 (Japanese)', 'japanese'),
-                _filterChip('エジプト (Egyptian)', 'egyptian'),
-                _filterChip('ギリシャ・ローマ (Greek Roman)', 'greek roman'),
-                _filterChip('中世 (Medieval)', 'medieval'),
-                _filterChip('現代美術 (Modern)', 'modern art'),
+                ...appConfig.filterCategories.map((c) => _filterChip(c.label, c.query)),
               ],
             ),
           ),
@@ -449,7 +442,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         final jaTitle = translatedTitle ?? artwork.title;
         SharePlus.instance.share(
           ShareParams(
-            text: '$jaTitle\n$jaArtist（${artwork.date}）\n\nhttps://www.metmuseum.org/art/collection/search/${artwork.id}',
+            text: '$jaTitle\n$jaArtist（${artwork.date}）\n\n${appConfig.museumUrl}/${artwork.id}',
           ),
         );
       },

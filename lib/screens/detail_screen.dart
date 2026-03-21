@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/artist.dart';
 import '../models/artwork.dart';
+import '../config/app_config.dart';
 import '../services/art_api.dart';
 import '../services/color_palette.dart';
 import '../services/similar_works.dart';
@@ -67,7 +68,7 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _loadDetail() async {
-    final detail = await ArtApi.fetchArtworkDetail(widget.artwork.id);
+    final detail = await artApi.fetchArtworkDetail(widget.artwork.id);
     setState(() {
       _detail = detail ?? widget.artwork;
       _loading = false;
@@ -562,7 +563,7 @@ class _DetailScreenState extends State<DetailScreen> {
                         final jaTitle = _translatedTitle ?? artwork.title;
                         SharePlus.instance.share(
                           ShareParams(
-                            text: '$jaTitle\n$jaArtist（${artwork.date}）\n\nhttps://www.artic.edu/artworks/${artwork.id}',
+                            text: '$jaTitle\n$jaArtist（${artwork.date}）\n\n${appConfig.museumUrl}/${artwork.id}',
                           ),
                         );
                       },
@@ -600,7 +601,7 @@ class _DetailScreenState extends State<DetailScreen> {
                       final jaTitle = _translatedTitle ?? artwork.title;
                       SharePlus.instance.share(
                         ShareParams(
-                          text: '$jaTitle\n$jaArtist（${artwork.date}）\n\nhttps://www.artic.edu/artworks/${artwork.id}',
+                          text: '$jaTitle\n$jaArtist（${artwork.date}）\n\n${appConfig.museumUrl}/${artwork.id}',
                         ),
                       );
                     },

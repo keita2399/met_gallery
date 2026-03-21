@@ -5,8 +5,6 @@ class Artwork {
   final String title;
   final String artist;
   final String date;
-  final String? primaryImage;
-  final String? primaryImageSmall;
   final String? description;
   final String? medium;
   final String? dimensions;
@@ -14,19 +12,17 @@ class Artwork {
   final String? placeOfOrigin;
   final String? department;
   final String? artistBio;
-  final String? classification;
-  final String? culture;
-  final String? period;
-  final String? objectName;
   final List<String> tags;
+
+  // API固有の画像情報（内部使用）
+  final String? _imageUrl;
+  final String? _imageUrlHigh;
 
   Artwork({
     required this.id,
     required this.title,
     required this.artist,
     required this.date,
-    this.primaryImage,
-    this.primaryImageSmall,
     this.description,
     this.medium,
     this.dimensions,
@@ -34,15 +30,22 @@ class Artwork {
     this.placeOfOrigin,
     this.department,
     this.artistBio,
-    this.classification,
-    this.culture,
-    this.period,
-    this.objectName,
     this.tags = const [],
-  });
+    String? imageUrl,
+    String? imageUrlHigh,
+  })  : _imageUrl = imageUrl,
+        _imageUrlHigh = imageUrlHigh;
 
-  factory Artwork.fromJson(Map<String, dynamic> json) {
-    // tagsからterm一覧を取得
+  /// 画像URL（Web時のCORSプロキシ対応込み）
+  String? get imageUrl => _imageUrl;
+
+  /// 高解像度画像URL
+  String? get imageUrlHigh => _imageUrlHigh;
+
+  // ---------------------------------------------------------------------------
+  // Met Museum API
+  // ---------------------------------------------------------------------------
+  factory Artwork.fromMetJson(Map<String, dynamic> json) {
     final tagList = <String>[];
     final rawTags = json['tags'];
     if (rawTags is List) {
@@ -53,15 +56,13 @@ class Artwork {
       }
     }
 
+    final artistBio = json['artistDisplayBio'] as String?;
+    final medium = json['medium'] as String?;
     final classification = json['classification'] as String?;
     final culture = json['culture'] as String?;
     final period = json['period'] as String?;
-    final objectName = json['objectName'] as String?;
-    final artistBio = json['artistDisplayBio'] as String?;
-    final medium = json['medium'] as String?;
 
-    // Met APIにはdescriptionがないため、メタデータから生成
-    final desc = _buildDescription(
+    final desc = _buildMetDescription(
       artist: json['artistDisplayName'] as String? ?? '',
       artistBio: artistBio,
       medium: medium,
@@ -71,13 +72,14 @@ class Artwork {
       tags: tagList,
     );
 
+    final smallImg = json['primaryImageSmall'] as String?;
+    final largeImg = json['primaryImage'] as String?;
+
     return Artwork(
       id: json['objectID'] as int,
       title: json['title'] as String? ?? 'Untitled',
       artist: json['artistDisplayName'] as String? ?? 'Unknown',
       date: json['objectDate'] as String? ?? '',
-      primaryImage: json['primaryImage'] as String?,
-      primaryImageSmall: json['primaryImageSmall'] as String?,
       description: desc,
       medium: medium,
       dimensions: json['dimensions'] as String?,
@@ -85,16 +87,19 @@ class Artwork {
       placeOfOrigin: json['country'] as String?,
       department: json['department'] as String?,
       artistBio: artistBio,
-      classification: classification,
-      culture: culture,
-      period: period,
-      objectName: objectName,
       tags: tagList,
+      imageUrl: _metProxyUrl(smallImg),
+      imageUrlHigh: _metProxyUrl(largeImg),
     );
   }
 
-  /// Met APIのメタデータから解説テキストを生成
-  static String? _buildDescription({
+  static String? _metProxyUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (!kIsWeb) return url;
+    return 'https://wsrv.nl/?url=${Uri.encodeComponent(url)}';
+  }
+
+  static String? _buildMetDescription({
     required String artist,
     String? artistBio,
     String? medium,
@@ -104,41 +109,63 @@ class Artwork {
     List<String> tags = const [],
   }) {
     final parts = <String>[];
-
     if (artist.isNotEmpty && artist != 'Unknown') {
       if (artistBio != null && artistBio.isNotEmpty) {
         parts.add('$artist ($artistBio).');
       }
     }
-
     if (classification != null && classification.isNotEmpty) {
-      final cultureStr = (culture != null && culture.isNotEmpty) ? '$culture, ' : '';
-      final periodStr = (period != null && period.isNotEmpty) ? '$period era. ' : '';
-      parts.add('${cultureStr}$periodStr$classification.');
+      final c = (culture != null && culture.isNotEmpty) ? '$culture, ' : '';
+      final p = (period != null && period.isNotEmpty) ? '$period era. ' : '';
+      parts.add('$c$p$classification.');
     }
-
-    if (medium != null && medium.isNotEmpty) {
-      parts.add('Medium: $medium.');
-    }
-
-    if (tags.isNotEmpty) {
-      parts.add('Themes: ${tags.join(", ")}.');
-    }
-
-    if (parts.isEmpty) return null;
-    return parts.join(' ');
+    if (medium != null && medium.isNotEmpty) parts.add('Medium: $medium.');
+    if (tags.isNotEmpty) parts.add('Themes: ${tags.join(", ")}.');
+    return parts.isEmpty ? null : parts.join(' ');
   }
 
-  /// Web用CORSプロキシ（images.metmuseum.orgはCORSヘッダーなし）
-  static String? _proxyUrl(String? url) {
-    if (url == null || url.isEmpty) return null;
-    if (!kIsWeb) return url;
-    return 'https://wsrv.nl/?url=${Uri.encodeComponent(url)}';
+  // ---------------------------------------------------------------------------
+  // Art Institute of Chicago API
+  // ---------------------------------------------------------------------------
+  factory Artwork.fromAicJson(Map<String, dynamic> json) {
+    final imageId = json['image_id'] as String?;
+    return Artwork(
+      id: json['id'] as int,
+      title: json['title'] as String? ?? 'Untitled',
+      artist: json['artist_title'] as String? ?? 'Unknown',
+      date: json['date_display'] as String? ?? '',
+      description: json['thumbnail']?['alt_text'] as String?,
+      imageUrl: _aicImageUrl(imageId, 843),
+      imageUrlHigh: _aicImageUrl(imageId, 1686),
+    );
   }
 
-  /// Met APIは画像URLを直接返すのでimageUrlはprimaryImageSmallを使用
-  String? get imageUrl => _proxyUrl(primaryImageSmall);
+  factory Artwork.fromAicDetailJson(Map<String, dynamic> json) {
+    final imageId = json['image_id'] as String?;
+    final desc = json['description'] as String?;
+    final altText = json['thumbnail']?['alt_text'] as String?;
+    return Artwork(
+      id: json['id'] as int,
+      title: json['title'] as String? ?? 'Untitled',
+      artist: json['artist_title'] as String? ?? 'Unknown',
+      date: json['date_display'] as String? ?? '',
+      description: desc ?? altText,
+      medium: json['medium_display'] as String?,
+      dimensions: json['dimensions'] as String?,
+      creditLine: json['credit_line'] as String?,
+      placeOfOrigin: json['place_of_origin'] as String?,
+      imageUrl: _aicImageUrl(imageId, 843),
+      imageUrlHigh: _aicImageUrl(imageId, 1686),
+    );
+  }
 
-  /// 高解像度はprimaryImageを使用
-  String? get imageUrlHigh => _proxyUrl(primaryImage);
+  static const _aicProxy = 'https://impressionist-bot.vercel.app/api/image';
+
+  static String? _aicImageUrl(String? imageId, int width) {
+    if (imageId == null) return null;
+    if (kIsWeb) {
+      return 'https://www.artic.edu/iiif/2/$imageId/full/$width,/0/default.jpg';
+    }
+    return '$_aicProxy?id=$imageId&w=$width';
+  }
 }

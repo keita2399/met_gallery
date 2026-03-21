@@ -60,7 +60,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     try {
       // お気に入りIDから直接作品詳細を取得
-      final futures = favSet.map((id) => ArtApi.fetchArtworkDetail(id));
+      final futures = favSet.map((id) => artApi.fetchArtworkDetail(id));
       final results = await Future.wait(futures);
       setState(() {
         _favorites = results.whereType<Artwork>().toList();

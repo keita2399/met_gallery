@@ -235,7 +235,7 @@ class _LightSimulationWidgetState extends State<LightSimulationWidget>
     } else {
       // On native, use NetworkImage with custom headers
       final completer = Completer<ui.Image>();
-      final imageProvider = NetworkImage(url, headers: ArtApi.imageHeaders);
+      final imageProvider = NetworkImage(url, headers: artApi.imageHeaders);
       final stream = imageProvider.resolve(ImageConfiguration.empty);
       late ImageStreamListener listener;
       listener = ImageStreamListener(

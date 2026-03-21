@@ -58,7 +58,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   Future<void> _loadData() async {
     try {
-      final works = await ArtApi.fetchHighlights(limit: 20);
+      final works = await artApi.fetchHighlights(limit: 20);
       setState(() {
         _allWorks = works.where((w) => w.imageUrl != null).toList();
         _loading = false;

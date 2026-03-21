@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'config/app_config.dart';
 import 'services/art_api.dart';
 import 'screens/home_screen.dart';
 import 'screens/detail_screen.dart';
@@ -14,32 +15,32 @@ int? _getArtworkIdFromUrl() {
   return null;
 }
 
-void main() async {
+/// 共通エントリポイント（main_met.dart / main_aic.dart から呼ばれる）
+void startApp() {
   WidgetsFlutterBinding.ensureInitialized();
   initInstallPrompt();
 
   final artworkId = _getArtworkIdFromUrl();
 
-  runApp(MetGalleryApp(artworkId: artworkId));
+  runApp(GalleryApp(artworkId: artworkId));
 
-  // 最初のフレーム描画後にスプラッシュ画面を削除
   WidgetsBinding.instance.addPostFrameCallback((_) {
     removeSplash();
   });
 }
 
-class MetGalleryApp extends StatelessWidget {
+class GalleryApp extends StatelessWidget {
   final int? artworkId;
-  const MetGalleryApp({super.key, this.artworkId});
+  const GalleryApp({super.key, this.artworkId});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'メトロポリタンさんぽ',
+      title: appConfig.appName,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF8B0000), // Met Museumの赤
+          seedColor: appConfig.themeColor,
           brightness: Brightness.dark,
         ),
         scaffoldBackgroundColor: Colors.black,
@@ -69,7 +70,7 @@ class _DeepLinkScreenState extends State<DeepLinkScreen> {
 
   Future<void> _loadArtwork() async {
     try {
-      final artwork = await ArtApi.fetchArtworkDetail(widget.artworkId);
+      final artwork = await artApi.fetchArtworkDetail(widget.artworkId);
       if (artwork != null && mounted) {
         Navigator.pushReplacement(
           context,

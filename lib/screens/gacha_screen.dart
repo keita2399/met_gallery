@@ -42,7 +42,7 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
     final today = DateTime.now().toIso8601String().substring(0, 10);
 
     try {
-      final works = await ArtApi.fetchHighlights(limit: 20);
+      final works = await artApi.fetchHighlights(limit: 20);
       setState(() {
         _allWorks = works;
         _loading = false;
