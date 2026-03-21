@@ -1,22 +1,26 @@
 #!/bin/bash
-# Build Flutter web and set up landing page + app structure
+# 使い方: ./build_web.sh met   (メトロポリタンさんぽ)
+#         ./build_web.sh aic   (印象派さんぽ)
 set -e
 
-# Build Flutter
-flutter build web --release --base-href /app/
+TARGET=${1:-met}
+FLUTTER=/c/flutter/bin/flutter
 
-# Move Flutter output to /app/ subdirectory
-mkdir -p build/web_final/app
-cp -r build/web/* build/web_final/app/
+case $TARGET in
+  met)
+    echo "Building メトロポリタンさんぽ..."
+    cp web/index_met.html web/index.html
+    $FLUTTER build web --release -t lib/main_met.dart
+    ;;
+  aic)
+    echo "Building 印象派さんぽ..."
+    cp web/index_aic.html web/index.html
+    $FLUTTER build web --release -t lib/main_aic.dart
+    ;;
+  *)
+    echo "Usage: $0 [met|aic]"
+    exit 1
+    ;;
+esac
 
-# Copy landing page to root
-cp public/index.html build/web_final/index.html
-
-# Copy favicon for landing page
-cp build/web/favicon.png build/web_final/favicon.png
-
-# Replace build/web with the final structure
-rm -rf build/web
-mv build/web_final build/web
-
-echo "Build complete: landing page at / , app at /app/"
+echo "Done: build/web ($TARGET)"
