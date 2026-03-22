@@ -61,14 +61,21 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   Future<void> _loadData() async {
     try {
       final works = await artApi.fetchHighlights(limit: 20);
+      // クイズに使えるのは画像とアーティスト名がある作品のみ
+      final validWorks = works.where((w) =>
+        w.imageUrl != null &&
+        w.artist.isNotEmpty &&
+        w.artist != 'Unknown' &&
+        w.artist != '作者不明'
+      ).toList();
+
+      // アーティスト名を事前に翻訳
+      for (final w in validWorks) {
+        await TranslateService.translateArtistAsync(w.artist);
+      }
+
       setState(() {
-        // クイズに使えるのは画像とアーティスト名がある作品のみ
-        _allWorks = works.where((w) =>
-          w.imageUrl != null &&
-          w.artist.isNotEmpty &&
-          w.artist != 'Unknown' &&
-          w.artist != '作者不明'
-        ).toList();
+        _allWorks = validWorks;
         _loading = false;
       });
       _nextQuestion();

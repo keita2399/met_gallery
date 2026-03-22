@@ -370,6 +370,29 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
                 'タップで詳細を見る',
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
               ),
+              const SizedBox(height: 16),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _result = null;
+                      _translatedTitle = null;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'もう一度引く',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
