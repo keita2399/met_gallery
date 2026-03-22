@@ -147,7 +147,7 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
           ),
           const SizedBox(height: 8),
           Text(
-            '毎日ひとつ、新しい${appConfig.artworkLabel}と出会おう',
+            'タップして新しい${appConfig.artworkLabel}と出会おう',
             style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
           ),
           // クイズボタン（ガチャを引いた後にアニメーション付きで表示）
