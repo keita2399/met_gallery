@@ -62,7 +62,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     try {
       final works = await artApi.fetchHighlights(limit: 20);
       setState(() {
-        _allWorks = works.where((w) => w.imageUrl != null).toList();
+        // クイズに使えるのは画像とアーティスト名がある作品のみ
+        _allWorks = works.where((w) =>
+          w.imageUrl != null &&
+          w.artist.isNotEmpty &&
+          w.artist != 'Unknown' &&
+          w.artist != '作者不明'
+        ).toList();
         _loading = false;
       });
       _nextQuestion();
@@ -72,7 +78,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   }
 
   void _nextQuestion() {
-    if (_allWorks.length < 4) return;
+    // ユニークなアーティストが3人以上必要
+    final uniqueArtists = _allWorks.map((w) => w.artist).toSet();
+    if (uniqueArtists.length < 3) return;
 
     _answered = false;
     _wasCorrect = false;
@@ -236,7 +244,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text('この作品の画家は？', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
+                    child: Text('この作品の作者は？', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
                   ),
                   const SizedBox(height: 8),
 
