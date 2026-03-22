@@ -285,117 +285,125 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
     final artwork = _result!;
     return ScaleTransition(
       scale: _scaleAnim,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(fullscreenDialog: true, builder: (_) => DetailScreen(artwork: artwork)),
-              );
-            },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.amber.withValues(alpha: 0.2),
-                      blurRadius: 30,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: artwork.imageUrl != null
-                      ? Hero(
-                          tag: 'artwork_${artwork.id}',
-                          child: ArtImage(
-                            imageUrl: artwork.imageUrl!,
-                            fit: BoxFit.contain,
-
-                            placeholder: (context, url) => const SizedBox(
-                              height: 200,
-                              child: Center(child: CircularProgressIndicator()),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 作品画像（タップで詳細）
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(fullscreenDialog: true, builder: (_) => DetailScreen(artwork: artwork)),
+                  );
+                },
+                child: Container(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.40),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.amber.withValues(alpha: 0.2),
+                        blurRadius: 30,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: artwork.imageUrl != null
+                        ? Hero(
+                            tag: 'artwork_${artwork.id}',
+                            child: ArtImage(
+                              imageUrl: artwork.imageUrl!,
+                              fit: BoxFit.contain,
+                              placeholder: (context, url) => const SizedBox(
+                                height: 200,
+                                child: Center(child: CircularProgressIndicator()),
+                              ),
+                              errorWidget: (context, url, error) => const SizedBox(
+                                height: 200,
+                                child: Center(child: Icon(Icons.broken_image, color: Colors.white54)),
+                              ),
                             ),
-                            errorWidget: (context, url, error) => const SizedBox(
-                              height: 200,
-                              child: Center(child: Icon(Icons.broken_image, color: Colors.white54)),
-                            ),
-                          ),
-                        )
-                      : const SizedBox(height: 200),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                _translatedTitle ?? artwork.title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              if (_translatedTitle != null && _translatedTitle != artwork.title) ...[
-                const SizedBox(height: 4),
-                Text(
-                  artwork.title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11, fontStyle: FontStyle.italic),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Text(
-                '${TranslateService.translateArtist(artwork.artist)}  •  ${artwork.date}',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  _alreadyDrawnToday ? 'コレクションに追加済み！' : '新しい発見！',
-                  style: const TextStyle(color: Colors.amber, fontSize: 13),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'タップで詳細を見る',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
-              ),
-              const SizedBox(height: 16),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _result = null;
-                      _translatedTitle = null;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'もう一度引く',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
-                    ),
+                          )
+                        : const SizedBox(height: 200),
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _translatedTitle ?? artwork.title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            if (_translatedTitle != null && _translatedTitle != artwork.title) ...[
+              const SizedBox(height: 4),
+              Text(
+                artwork.title,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11, fontStyle: FontStyle.italic),
+              ),
             ],
-          ),
-        ),
+            const SizedBox(height: 8),
+            Text(
+              '${TranslateService.translateArtist(artwork.artist)}  •  ${artwork.date}',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            // 2つのボタンを横並び
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(fullscreenDialog: true, builder: (_) => DetailScreen(artwork: artwork)),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                      ),
+                      child: const Text('詳細を見る', style: TextStyle(color: Colors.amber, fontSize: 13)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _result = null;
+                        _translatedTitle = null;
+                        _alreadyDrawnToday = false;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text('もう一度引く', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );
