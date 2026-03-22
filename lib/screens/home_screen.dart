@@ -58,7 +58,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           _loading = false;
         });
         _fadeController.forward();
-        _translateArtwork(artwork);
+        // awaitして未処理rejectionを防ぐ
+        await _translateArtwork(artwork);
         final fav = await FirestoreService.isFavorite(artwork.id);
         if (mounted) setState(() => _isFavorite = fav);
       }

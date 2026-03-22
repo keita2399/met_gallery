@@ -87,17 +87,25 @@ class MetApi extends ArtApi {
 
   @override
   Future<List<Artwork>> fetchHighlights({String? query, int limit = 20}) async {
-    final ids = await searchObjectIds(
-      query: query ?? '*',
-      isHighlight: true,
-    );
-    return _fetchArtworksByIds(ids, limit: limit);
+    try {
+      final ids = await searchObjectIds(
+        query: query ?? '*',
+        isHighlight: true,
+      );
+      return _fetchArtworksByIds(ids, limit: limit);
+    } catch (_) {
+      return [];
+    }
   }
 
   @override
   Future<List<Artwork>> fetchPublicDomainWorks({String? query, int limit = 100}) async {
-    final ids = await searchObjectIds(query: query ?? '*');
-    return _fetchArtworksByIds(ids, limit: limit);
+    try {
+      final ids = await searchObjectIds(query: query ?? '*');
+      return _fetchArtworksByIds(ids, limit: limit);
+    } catch (_) {
+      return [];
+    }
   }
 
   Future<List<Artwork>> _fetchArtworksByIds(List<int> ids, {int limit = 80}) async {

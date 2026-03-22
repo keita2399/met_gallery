@@ -22,11 +22,12 @@ void startApp() {
 
   final artworkId = _getArtworkIdFromUrl();
 
-  runApp(GalleryApp(artworkId: artworkId));
-
+  // スプラッシュを即座に削除（Flutterが描画を開始した時点で不要）
   WidgetsBinding.instance.addPostFrameCallback((_) {
     removeSplash();
   });
+
+  runApp(GalleryApp(artworkId: artworkId));
 }
 
 class GalleryApp extends StatelessWidget {
