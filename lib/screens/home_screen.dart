@@ -97,16 +97,88 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           const InstallBanner(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        backgroundColor: Colors.black.withValues(alpha: 0.9),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: '今日'),
-          NavigationDestination(icon: Icon(Icons.collections_outlined), selectedIcon: Icon(Icons.collections), label: 'ギャラリー'),
-          NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'ガチャ'),
-          NavigationDestination(icon: Icon(Icons.timeline_outlined), selectedIcon: Icon(Icons.timeline), label: '年表'),
-          NavigationDestination(icon: Icon(Icons.favorite_outline), selectedIcon: Icon(Icons.favorite), label: 'コレクション'),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // BGMミニバー（常時表示）
+          _buildBgmBar(),
+          NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (i) => setState(() => _currentIndex = i),
+            backgroundColor: Colors.black.withValues(alpha: 0.9),
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: '今日'),
+              NavigationDestination(icon: Icon(Icons.collections_outlined), selectedIcon: Icon(Icons.collections), label: 'ギャラリー'),
+              NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'ガチャ'),
+              NavigationDestination(icon: Icon(Icons.timeline_outlined), selectedIcon: Icon(Icons.timeline), label: '年表'),
+              NavigationDestination(icon: Icon(Icons.favorite_outline), selectedIcon: Icon(Icons.favorite), label: 'コレクション'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBgmBar() {
+    final playing = BgmService.instance.isPlaying;
+    final track = BgmService.instance.currentTrack;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: playing ? Colors.amber.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.9),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+      ),
+      child: Row(
+        children: [
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () async {
+                await BgmService.instance.toggle();
+                setState(() {});
+              },
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: playing ? Colors.amber.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  playing ? Icons.pause : Icons.play_arrow,
+                  color: playing ? Colors.amber : Colors.white54,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              playing ? '${track.title} - ${track.composer}' : 'BGM',
+              style: TextStyle(
+                color: playing ? Colors.white.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.3),
+                fontSize: 11,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (playing) ...[
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () async { await BgmService.instance.previous(); setState(() {}); },
+                child: Icon(Icons.skip_previous, color: Colors.white.withValues(alpha: 0.5), size: 18),
+              ),
+            ),
+            const SizedBox(width: 8),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () async { await BgmService.instance.next(); setState(() {}); },
+                child: Icon(Icons.skip_next, color: Colors.white.withValues(alpha: 0.5), size: 18),
+              ),
+            ),
+          ],
         ],
       ),
     );
