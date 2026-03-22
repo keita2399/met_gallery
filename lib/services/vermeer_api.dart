@@ -10,18 +10,12 @@ class VermeerApi extends ArtApi {
   @override
   Map<String, String> get imageHeaders => const {};
 
-  /// Wikimedia Commons の Special:FilePath URL を直接画像URLに変換
-  /// http://commons.wikimedia.org/wiki/Special:FilePath/File.jpg
-  /// → https://commons.wikimedia.org/wiki/Special:FilePath/File.jpg
-  /// Image.networkがhttpsリダイレクトを追跡できるようにする
+  /// Wikimedia Commons 画像をプロキシ経由で取得（リダイレクト問題回避）
   static String _toImageUrl(String url) {
-    // httpをhttpsに変換
     if (url.startsWith('http://')) {
       url = 'https://${url.substring(7)}';
     }
-    // スペースをアンダースコアに（Wikimedia規約）
-    url = url.replaceAll('%20', '_').replaceAll(' ', '_');
-    return url;
+    return 'https://impressionist-bot.vercel.app/api/image?met=${Uri.encodeComponent(url)}';
   }
 
   /// Wikidataからフェルメール全作品を取得
