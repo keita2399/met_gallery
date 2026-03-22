@@ -161,7 +161,7 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
                       cursor: SystemMouseCursors.click,
                       child: GestureDetector(
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => QuizScreen(initialArtwork: _result)));
                         },
                         child: TweenAnimationBuilder<double>(
                           tween: Tween(begin: 0.0, end: 1.0),

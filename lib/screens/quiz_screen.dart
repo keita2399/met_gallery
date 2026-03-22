@@ -9,7 +9,9 @@ import '../widgets/bgm_fab.dart';
 import 'detail_screen.dart';
 
 class QuizScreen extends StatefulWidget {
-  const QuizScreen({super.key});
+  /// ガチャから渡された作品（第1問に使用）
+  final Artwork? initialArtwork;
+  const QuizScreen({super.key, this.initialArtwork});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -69,6 +71,15 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         w.artist != '作者不明'
       ).toList();
 
+      // ガチャの作品をリストに含める
+      final initial = widget.initialArtwork;
+      if (initial != null &&
+          initial.artist.isNotEmpty &&
+          initial.artist != 'Unknown' &&
+          !validWorks.any((w) => w.id == initial.id)) {
+        validWorks.insert(0, initial);
+      }
+
       // アーティスト名を事前に翻訳
       for (final w in validWorks) {
         await TranslateService.translateArtistAsync(w.artist);
@@ -78,13 +89,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         _allWorks = validWorks;
         _loading = false;
       });
-      _nextQuestion();
+      _nextQuestion(firstWork: initial);
     } catch (_) {
       setState(() => _loading = false);
     }
   }
 
-  void _nextQuestion() {
+  void _nextQuestion({Artwork? firstWork}) {
     // ユニークなアーティストが3人以上必要
     final uniqueArtists = _allWorks.map((w) => w.artist).toSet();
     if (uniqueArtists.length < 3) return;
@@ -97,7 +108,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _confettiController.reset();
     _particles = [];
 
-    final work = _allWorks[_random.nextInt(_allWorks.length)];
+    // 初回はガチャの作品を使用、以降はランダム
+    final work = (firstWork != null && firstWork.artist.isNotEmpty && firstWork.artist != 'Unknown')
+        ? firstWork
+        : _allWorks[_random.nextInt(_allWorks.length)];
     final correctArtist = work.artist;
 
     final otherArtists = _allWorks
