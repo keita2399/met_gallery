@@ -1,11 +1,25 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../models/artwork.dart';
 import 'art_api.dart';
 
 /// Metropolitan Museum of Art API実装
 class MetApi extends ArtApi {
-  static const _baseUrl = 'https://collectionapi.metmuseum.org/public/collection/v1';
+  // Web版はCDNブロック回避のためプロキシ経由
+  static const _directUrl = 'https://collectionapi.metmuseum.org/public/collection/v1';
+  static const _proxyUrl = 'https://impressionist-bot.vercel.app/api/met-proxy';
+
+  static String _buildUrl(String path, [Map<String, String>? params]) {
+    if (kIsWeb) {
+      final p = <String, String>{'path': path};
+      if (params != null) p.addAll(params);
+      return Uri.parse(_proxyUrl).replace(queryParameters: p).toString();
+    }
+    final base = '$_directUrl/$path';
+    if (params == null || params.isEmpty) return base;
+    return Uri.parse(base).replace(queryParameters: params).toString();
+  }
 
   @override
   Map<String, String> get imageHeaders => const {};
@@ -53,7 +67,7 @@ class MetApi extends ArtApi {
     if (departmentId != null) params['departmentId'] = departmentId.toString();
     params['q'] = query ?? '*';
 
-    final url = Uri.parse('$_baseUrl/search').replace(queryParameters: params);
+    final url = Uri.parse(_buildUrl('search', params));
     final response = await _get(url);
 
     if (response.statusCode != 200) {
@@ -71,7 +85,7 @@ class MetApi extends ArtApi {
 
   @override
   Future<Artwork?> fetchArtworkDetail(int id) async {
-    final url = Uri.parse('$_baseUrl/objects/$id');
+    final url = Uri.parse(_buildUrl('objects/$id'));
     try {
       final response = await _get(url);
       if (response.statusCode != 200) return null;
