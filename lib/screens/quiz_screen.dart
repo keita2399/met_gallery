@@ -196,32 +196,33 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         ),
         title: Text('${appConfig.artworkLabel}クイズ', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
-          // Score badge with bounce
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 1.0, end: 1.3).animate(_scoreBounce),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.emoji_events, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$_score / $_total',
-                      style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+          // Score badge（1問以上回答後に表示）
+          if (_total > 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 1.0, end: 1.3).animate(_scoreBounce),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.emoji_events, color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_score / $_total',
+                        style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
       body: Stack(
