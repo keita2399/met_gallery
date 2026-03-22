@@ -23,8 +23,13 @@ case $TARGET in
     cp web/index_vermeer.html web/index.html
     $FLUTTER build web --release -t lib/main_vermeer.dart
     ;;
+  rembrandt)
+    echo "Building レンブラントさんぽ..."
+    cp web/index_rembrandt.html web/index.html
+    $FLUTTER build web --release -t lib/main_rembrandt.dart
+    ;;
   *)
-    echo "Usage: $0 [met|aic|vermeer]"
+    echo "Usage: $0 [met|aic|vermeer|rembrandt]"
     exit 1
     ;;
 esac
