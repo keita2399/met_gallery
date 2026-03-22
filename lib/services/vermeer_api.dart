@@ -5,7 +5,7 @@ import 'art_api.dart';
 
 /// フェルメール全作品API（Wikidata SPARQL経由）
 class VermeerApi extends ArtApi {
-  static const _sparqlEndpoint = 'https://query.wikidata.org/sparql';
+  static const _sparqlProxy = 'https://impressionist-bot.vercel.app/api/sparql';
 
   @override
   Map<String, String> get imageHeaders => const {};
@@ -33,14 +33,11 @@ ORDER BY ?inception
 ''';
 
     try {
-      final url = Uri.parse(
-        '$_sparqlEndpoint?format=json&query=${Uri.encodeComponent(query)}',
-      );
+      final url = Uri.parse(_sparqlProxy).replace(queryParameters: {
+        'query': query.trim(),
+      });
 
-      final response = await http.get(url, headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'VermeerSanpo/1.0 (Flutter App)',
-      }).timeout(const Duration(seconds: 15));
+      final response = await http.get(url).timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) return [];
 
