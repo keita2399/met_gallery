@@ -82,13 +82,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
+    final screens = <Widget>[
       _buildHome(),
       const GalleryScreen(),
       const GachaScreen(),
-      const TimelineScreen(),
+      if (appConfig.hasTimeline) const TimelineScreen(),
       const FavoritesScreen(),
     ];
+
+    final bgmIndex = screens.length; // BGMボタンのインデックス
 
     return Scaffold(
       body: Column(
@@ -101,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         selectedIndex: _currentIndex,
         onDestinationSelected: (i) {
           // BGMボタン（最後）はトグル再生、画面遷移しない
-          if (i == 5) {
+          if (i == bgmIndex) {
             BgmService.instance.toggle();
             setState(() {});
             return;
@@ -113,7 +115,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: '今日'),
           const NavigationDestination(icon: Icon(Icons.collections_outlined), selectedIcon: Icon(Icons.collections), label: 'ギャラリー'),
           const NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'ガチャ'),
-          const NavigationDestination(icon: Icon(Icons.timeline_outlined), selectedIcon: Icon(Icons.timeline), label: '年表'),
+          if (appConfig.hasTimeline)
+            const NavigationDestination(icon: Icon(Icons.timeline_outlined), selectedIcon: Icon(Icons.timeline), label: '年表'),
           const NavigationDestination(icon: Icon(Icons.favorite_outline), selectedIcon: Icon(Icons.favorite), label: 'コレクション'),
           NavigationDestination(
             icon: Icon(BgmService.instance.isPlaying ? Icons.music_note : Icons.music_off,
