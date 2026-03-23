@@ -42,6 +42,16 @@ class Artwork {
   /// 高解像度画像URL
   String? get imageUrlHigh => _imageUrlHigh;
 
+  /// 絵画かどうかの判定（色彩分析の表示判定に使用）
+  bool get isPainting {
+    final m = (medium ?? '').toLowerCase();
+    final d = (department ?? '').toLowerCase();
+    return m.contains('oil') || m.contains('canvas') || m.contains('watercolor') ||
+        m.contains('painting') || m.contains('tempera') || m.contains('acrylic') ||
+        m.contains('gouache') || m.contains('fresco') || m.contains('pastel') ||
+        d.contains('painting') || d.contains('絵画');
+  }
+
   // ---------------------------------------------------------------------------
   // Met Museum API
   // ---------------------------------------------------------------------------

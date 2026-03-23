@@ -44,7 +44,7 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     _loadDetail();
-    if (appConfig.hasColorPalette) {
+    if (appConfig.hasColorPalette && widget.artwork.isPainting) {
       _extractPalette();
       _loadSimilarWorks();
     }
