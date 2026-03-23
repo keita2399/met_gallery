@@ -44,9 +44,9 @@ ORDER BY ?inception
 ''';
 
     try {
-      final url = Uri.parse(_sparqlProxy).replace(queryParameters: {
-        'query': query.trim(),
-      });
+      final url = Uri.parse(
+        '$_sparqlProxy?query=${Uri.encodeComponent(query.trim())}',
+      );
 
       final response = await http.get(url).timeout(const Duration(seconds: 20));
 
