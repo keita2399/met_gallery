@@ -15,8 +15,8 @@ class SmithsonianApi extends ArtApi {
     try {
       final params = <String, String>{
         'q': query ?? '*',
-        'rows': limit.toString(),
-        'online_media_type': 'Images',
+        'rows': (limit * 3).toString(), // 画像なしも混ざるので多めに取得
+        'category': 'art_design',
       };
 
       final url = Uri.parse(_proxyUrl).replace(queryParameters: params);
