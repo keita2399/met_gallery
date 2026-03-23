@@ -89,11 +89,29 @@ class SmithsonianApi extends ArtApi {
       artist = (names[0] as Map<String, dynamic>)['content'] as String? ?? artist;
     }
 
-    // 説明
-    String? description;
+    // 説明（複数フィールドから組み立て）
+    final descParts = <String>[];
     final notes = freetext['notes'] as List<dynamic>?;
-    if (notes != null && notes.isNotEmpty) {
-      description = (notes[0] as Map<String, dynamic>)['content'] as String?;
+    if (notes != null) {
+      for (final n in notes) {
+        final text = (n as Map<String, dynamic>)['content'] as String? ?? '';
+        if (text.isNotEmpty && text != 'Research in Progress') {
+          descParts.add(text);
+        }
+      }
+    }
+    final place = freetext['place'] as List<dynamic>?;
+    if (place != null && place.isNotEmpty) {
+      descParts.add('制作地: ${(place[0] as Map<String, dynamic>)['content'] ?? ''}');
+    }
+    final objectType = freetext['objectType'] as List<dynamic>?;
+    if (objectType != null && objectType.isNotEmpty) {
+      descParts.add('種類: ${(objectType[0] as Map<String, dynamic>)['content'] ?? ''}');
+    }
+    final creditLine = freetext['creditLine'] as List<dynamic>?;
+    String? credit;
+    if (creditLine != null && creditLine.isNotEmpty) {
+      credit = (creditLine[0] as Map<String, dynamic>)['content'] as String?;
     }
 
     // 素材/技法
@@ -103,6 +121,8 @@ class SmithsonianApi extends ArtApi {
       medium = (physDesc[0] as Map<String, dynamic>)['content'] as String?;
     }
 
+    final description = descParts.isNotEmpty ? descParts.join('\n') : null;
+
     return Artwork(
       id: id,
       title: title,
@@ -110,6 +130,7 @@ class SmithsonianApi extends ArtApi {
       date: date,
       description: description,
       medium: medium,
+      creditLine: credit,
       department: _unitCodeToLabel(unitCode),
       imageUrl: imageUrl,
       imageUrlHigh: imageUrl,

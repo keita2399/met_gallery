@@ -10,6 +10,7 @@ const smithsonianConfig = AppConfig(
   appUrl: 'https://sanpo-smithsonian.vercel.app',
   hasTimeline: false,
   hasArtistProfiles: false,
+  hasColorPalette: false,
   artworkLabel: '展示品',
   filterCategories: [
     FilterCategory(label: 'すべて'),

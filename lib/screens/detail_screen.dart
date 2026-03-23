@@ -44,8 +44,10 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     _loadDetail();
-    _extractPalette();
-    _loadSimilarWorks();
+    if (appConfig.hasColorPalette) {
+      _extractPalette();
+      _loadSimilarWorks();
+    }
     StatsService.recordView(widget.artwork.id, widget.artwork.artist);
   }
 
@@ -388,8 +390,8 @@ class _DetailScreenState extends State<DetailScreen> {
                           _infoRow('所蔵', _translatedCredit ?? artwork.creditLine!),
                         ],
                       ],
-                      // Color palette
-                      if (_palette.isNotEmpty) ...[
+                      // Color palette（絵画系のみ表示）
+                      if (appConfig.hasColorPalette && _palette.isNotEmpty) ...[
                         const SizedBox(height: 24),
                         Text('この作品の色彩', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 10),
@@ -427,8 +429,8 @@ class _DetailScreenState extends State<DetailScreen> {
                           }).toList(),
                         ),
                       ],
-                      // Similar works section
-                      if (_similarWorks.isNotEmpty || _loadingSimilar) ...[
+                      // Similar works section（絵画系のみ表示）
+                      if (appConfig.hasColorPalette && (_similarWorks.isNotEmpty || _loadingSimilar)) ...[
                         const SizedBox(height: 28),
                         Text('色が似ている作品', style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 12),

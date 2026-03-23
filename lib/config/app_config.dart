@@ -22,6 +22,9 @@ class AppConfig {
   /// 作品の呼称（「名画」or「名作」等）
   final String artworkLabel;
 
+  /// 色彩パレット・類似作品を表示するか
+  final bool hasColorPalette;
+
   const AppConfig({
     required this.appName,
     required this.appNameEn,
@@ -33,6 +36,7 @@ class AppConfig {
     this.hasTimeline = false,
     this.hasArtistProfiles = false,
     this.artworkLabel = '名作',
+    this.hasColorPalette = true,
   });
 }
 
