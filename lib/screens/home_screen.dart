@@ -12,6 +12,7 @@ import 'favorites_screen.dart';
 import '../widgets/install_banner.dart';
 import 'gacha_screen.dart';
 import 'timeline_screen.dart';
+import 'orangerie_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -87,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       const GalleryScreen(),
       const GachaScreen(),
       if (appConfig.hasTimeline) const TimelineScreen(),
+      if (appConfig.has3dGallery) const OrangerieScreen(),
       const FavoritesScreen(),
     ];
 
@@ -117,6 +119,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           const NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'ガチャ'),
           if (appConfig.hasTimeline)
             const NavigationDestination(icon: Icon(Icons.timeline_outlined), selectedIcon: Icon(Icons.timeline), label: '年表'),
+          if (appConfig.has3dGallery)
+            const NavigationDestination(icon: Icon(Icons.view_in_ar_outlined), selectedIcon: Icon(Icons.view_in_ar), label: '3D美術館'),
           const NavigationDestination(icon: Icon(Icons.favorite_outline), selectedIcon: Icon(Icons.favorite), label: 'コレクション'),
           NavigationDestination(
             icon: Icon(BgmService.instance.isPlaying ? Icons.music_note : Icons.music_off,

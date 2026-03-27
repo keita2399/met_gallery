@@ -9,6 +9,7 @@ const monetConfig = AppConfig(
   museumUrl: 'https://www.wikidata.org/wiki',
   appUrl: 'https://sanpo-monet.vercel.app',
   hasTimeline: false,
+  has3dGallery: true,
   hasArtistProfiles: false,
   artworkLabel: '名画',
   filterCategories: [

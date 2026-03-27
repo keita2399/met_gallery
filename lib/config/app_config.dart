@@ -25,6 +25,9 @@ class AppConfig {
   /// 色彩パレット・類似作品を表示するか
   final bool hasColorPalette;
 
+  /// 3D美術館を表示するか
+  final bool has3dGallery;
+
   const AppConfig({
     required this.appName,
     required this.appNameEn,
@@ -37,6 +40,7 @@ class AppConfig {
     this.hasArtistProfiles = false,
     this.artworkLabel = '名作',
     this.hasColorPalette = true,
+    this.has3dGallery = false,
   });
 }
 

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オランジュリー美術館 — モネの睡蓮</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { overflow: hidden; background: #000; font-family: 'Georgia', 'Hiragino Mincho ProN', serif; }
+    canvas { display: block; }
+    #info {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.4);
+      padding: 8px 20px; border-radius: 20px; font-size: 12px;
+      pointer-events: none; z-index: 10;
+    }
+    #artwork-info {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      color: #fff; background: rgba(0,0,0,0.5); padding: 12px 24px;
+      border-radius: 8px; font-size: 15px; text-align: center;
+      z-index: 10; pointer-events: none; opacity: 0; transition: opacity 1.5s;
+      backdrop-filter: blur(4px); letter-spacing: 2px;
+    }
+    #artwork-info.show { opacity: 1; }
+    #artwork-info h3 { color: #e8d8b8; font-size: 17px; margin-bottom: 4px; font-weight: normal; }
+    #artwork-info p { color: #bbb; font-size: 13px; }
+    #loading {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: #f5f0e8; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; color: #6b7b5e; font-size: 16px; z-index: 100; letter-spacing: 3px;
+    }
+    #loading .title { font-size: 24px; color: #4a5a3e; margin-bottom: 8px; }
+    #loading .subtitle { font-size: 13px; color: #8a8a7a; margin-bottom: 24px; }
+    #loading .spinner {
+      width: 30px; height: 30px; border: 2px solid #ccc; border-top-color: #6b7b5e;
+      border-radius: 50%; animation: spin 1.5s linear infinite; margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #controls {
+      position: fixed; top: 20px; right: 20px; z-index: 10; display: flex; gap: 8px;
+    }
+    #controls button {
+      background: rgba(0,0,0,0.4); color: rgba(255,255,255,0.8);
+      border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px;
+      border-radius: 20px; font-size: 12px; cursor: pointer;
+      font-family: inherit; transition: all 0.3s; backdrop-filter: blur(4px);
+    }
+    #controls button:hover { background: rgba(0,0,0,0.6); }
+    #controls button.active { background: rgba(107,123,94,0.6); border-color: rgba(107,123,94,0.8); }
+    #room-select {
+      position: fixed; top: 20px; left: 20px; z-index: 10;
+    }
+    #room-select button {
+      background: rgba(0,0,0,0.4); color: rgba(255,255,255,0.8);
+      border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px;
+      border-radius: 20px; font-size: 12px; cursor: pointer;
+      font-family: inherit; margin-right: 6px; transition: all 0.3s; backdrop-filter: blur(4px);
+    }
+    #room-select button:hover { background: rgba(0,0,0,0.6); }
+    #room-select button.active { background: rgba(107,123,94,0.6); border-color: rgba(107,123,94,0.8); }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="title">Musée de l'Orangerie</div>
+    <div class="subtitle">Claude Monet — Les Nymphéas</div>
+    <div class="spinner"></div>
+    <div id="loading-text">睡蓮の間を準備中...</div>
+  </div>
+  <div id="room-select">
+    <button class="active" onclick="switchRoom(1)">第1室</button>
+    <button onclick="switchRoom(2)">第2室</button>
+  </div>
+  <div id="controls">
+    <button id="btn-auto" class="active" onclick="toggleAuto()">自動鑑賞</button>
+    <button onclick="toggleManual()">手動操作</button>
+  </div>
+  <div id="info">自動鑑賞中 — スクロールでズーム / クリックで手動に切替</div>
+  <div id="artwork-info">
+    <h3 id="art-title"></h3>
+    <p id="art-sub"></p>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const PROXY = 'https://impressionist-bot.vercel.app/api/image?met=';
+    const RADIUS_X = 12, RADIUS_Z = 6, ROOM_HEIGHT = 5;
+
+    const ROOMS = {
+      1: {
+        name: '第1室',
+        panels: [
+          { title: 'Les Nymphéas — Le Matin', sub: '睡蓮 — 朝', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Claude_Monet_-_The_Water_Lilies_-_Morning_-_Google_Art_Project.jpg/1280px-Claude_Monet_-_The_Water_Lilies_-_Morning_-_Google_Art_Project.jpg' },
+          { title: 'Les Nymphéas — Les Nuages', sub: '睡蓮 — 雲', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Claude_Monet_-_The_Water_Lilies_-_The_Clouds_-_Google_Art_Project.jpg/1280px-Claude_Monet_-_The_Water_Lilies_-_The_Clouds_-_Google_Art_Project.jpg' },
+          { title: 'Les Nymphéas — Reflets verts', sub: '睡蓮 — 緑の反映', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Claude_Monet_-_The_Water_Lilies_-_Green_Reflections_-_Google_Art_Project.jpg/1280px-Claude_Monet_-_The_Water_Lilies_-_Green_Reflections_-_Google_Art_Project.jpg' },
+          { title: 'Les Nymphéas — Soleil couchant', sub: '睡蓮 — 落日', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Claude_Monet_-_The_Water_Lilies_-_Setting_Sun_-_Google_Art_Project.jpg/1280px-Claude_Monet_-_The_Water_Lilies_-_Setting_Sun_-_Google_Art_Project.jpg' },
+        ]
+      },
+      2: {
+        name: '第2室',
+        panels: [
+          { title: 'Les Nymphéas — Le Matin clair aux saules', sub: '睡蓮 — 柳のある晴れた朝', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Claude_Monet_-_The_Water_Lilies_-_Clear_Morning_with_Willows_-_Google_Art_Project.jpg/1280px-Claude_Monet_-_The_Water_Lilies_-_Clear_Morning_with_Willows_-_Google_Art_Project.jpg' },
+          { title: 'Les Nymphéas — Les Deux saules', sub: '睡蓮 — 2本の柳', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Claude_Monet_-_The_Water_Lilies_-_The_Two_Willows_-_Google_Art_Project.jpg/1280px-Claude_Monet_-_The_Water_Lilies_-_The_Two_Willows_-_Google_Art_Project.jpg' },
+          { title: 'Les Nymphéas — Reflets d\'arbres', sub: '睡蓮 — 木々の反映', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Claude_Monet_-_The_Water_Lilies_-_Tree_Reflections_-_Google_Art_Project.jpg/1280px-Claude_Monet_-_The_Water_Lilies_-_Tree_Reflections_-_Google_Art_Project.jpg' },
+          { title: 'Les Nymphéas — Le Matin', sub: '睡蓮 — 朝（別パネル）', img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Claude_Monet_-_The_Water_Lilies_-_Morning_-_Google_Art_Project.jpg/1280px-Claude_Monet_-_The_Water_Lilies_-_Morning_-_Google_Art_Project.jpg' },
+        ]
+      }
+    };
+
+    // --- Scene ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xeae6de);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 1.5, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.physicallyCorrectLights = true;
+    document.body.appendChild(renderer.domElement);
+
+    // --- Load Blender model ---
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.load('orangerie_room.glb', (gltf) => {
+      const model = gltf.scene;
+      // Rotate to match Three.js coordinate system (Blender Y-up -> Three.js Y-up already handled by glTF)
+      scene.add(model);
+
+      // Enable shadows on all meshes
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.receiveShadow = true;
+          child.castShadow = true;
+        }
+      });
+
+      console.log('Blender model loaded');
+    });
+
+    // --- Lighting (in Three.js since glTF doesn't support area lights) ---
+    // Soft ambient
+    const ambient = new THREE.AmbientLight(0xf0ece6, 0.6);
+    scene.add(ambient);
+
+    // Main skylight area light simulation — multiple point lights in oval pattern
+    const skylightLights = [];
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const x = Math.cos(angle) * RADIUS_X * 0.35;
+      const z = Math.sin(angle) * RADIUS_Z * 0.35;
+      const pl = new THREE.PointLight(0xfff8f0, 15, 12, 1.5);
+      pl.position.set(x, ROOM_HEIGHT + 0.3, z);
+      pl.castShadow = true;
+      pl.shadow.mapSize.set(512, 512);
+      pl.shadow.bias = -0.001;
+      scene.add(pl);
+      skylightLights.push(pl);
+    }
+
+    // Center bright light
+    const centerLight = new THREE.PointLight(0xffffff, 20, 15, 1.5);
+    centerLight.position.set(0, ROOM_HEIGHT + 0.3, 0);
+    centerLight.castShadow = true;
+    centerLight.shadow.mapSize.set(1024, 1024);
+    scene.add(centerLight);
+
+    // Wall wash lights — illuminate paintings from above
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const x = Math.cos(angle) * RADIUS_X * 0.85;
+      const z = Math.sin(angle) * RADIUS_Z * 0.85;
+      const spot = new THREE.SpotLight(0xfff5ea, 8, 6, Math.PI / 4, 0.7, 1.5);
+      spot.position.set(x * 0.7, ROOM_HEIGHT - 0.2, z * 0.7);
+      spot.target.position.set(x, 2.0, z);
+      scene.add(spot);
+      scene.add(spot.target);
+    }
+
+    // Hemisphere for natural sky fill
+    const hemi = new THREE.HemisphereLight(0xf5f0ea, 0x9a9488, 0.4);
+    scene.add(hemi);
+
+    // --- OrbitControls ---
+    const orbitControls = new OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.05;
+    orbitControls.enablePan = false;
+    orbitControls.minDistance = 1;
+    orbitControls.maxDistance = 10;
+    orbitControls.minPolarAngle = Math.PI * 0.3;
+    orbitControls.maxPolarAngle = Math.PI * 0.7;
+    orbitControls.target.set(0, 1.8, 0);
+    orbitControls.enabled = true;
+    orbitControls.enableRotate = false;
+    orbitControls.enableZoom = true;
+
+    // --- Curved paintings ---
+    const textureLoader = new THREE.TextureLoader();
+    let panelMeshes = [];
+    let loadCount = 0, loadTarget = 0, currentRoom = 1;
+    const SEGMENTS = 32, GAP = 0.03, WALL_OFFSET = 0.08;
+
+    function clearPanels() {
+      panelMeshes.forEach(g => {
+        scene.remove(g);
+        g.traverse(c => {
+          if (c.geometry) c.geometry.dispose();
+          if (c.material) { if (c.material.map) c.material.map.dispose(); c.material.dispose(); }
+        });
+      });
+      panelMeshes = [];
+    }
+
+    function loadRoom(roomNum) {
+      currentRoom = roomNum;
+      clearPanels();
+      loadCount = 0;
+      const room = ROOMS[roomNum];
+      const panels = room.panels;
+      loadTarget = panels.length;
+      document.getElementById('loading').style.display = 'flex';
+      document.getElementById('loading-text').textContent = `${room.name}の睡蓮を読み込み中...`;
+      document.querySelectorAll('#room-select button').forEach((btn, i) => {
+        btn.classList.toggle('active', i + 1 === roomNum);
+      });
+
+      const panelHeight = 2.0, panelY = 2.0;
+
+      panels.forEach((panel, i) => {
+        const startAngle = (i / 4) * Math.PI * 2 + GAP;
+        const endAngle = ((i + 1) / 4) * Math.PI * 2 - GAP;
+        const group = new THREE.Group();
+
+        const positions = [], uvs = [], indices = [];
+        for (let s = 0; s <= SEGMENTS; s++) {
+          const t = s / SEGMENTS;
+          const angle = startAngle + (endAngle - startAngle) * t;
+          const x = Math.cos(angle) * (RADIUS_X - WALL_OFFSET);
+          const z = Math.sin(angle) * (RADIUS_Z - WALL_OFFSET);
+          positions.push(x, panelY - panelHeight/2, z);
+          uvs.push(t, 0);
+          positions.push(x, panelY + panelHeight/2, z);
+          uvs.push(t, 1);
+          if (s < SEGMENTS) {
+            const a = s*2, b = s*2+1, c = (s+1)*2, d = (s+1)*2+1;
+            indices.push(a, b, c); indices.push(b, d, c);
+          }
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        geo.setIndex(indices);
+        geo.computeVertexNormals();
+
+        const imgUrl = `${PROXY}${encodeURIComponent(panel.img)}`;
+        textureLoader.load(imgUrl, (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+          const mat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.85, side: THREE.DoubleSide });
+          group.add(new THREE.Mesh(geo, mat));
+          loadCount++;
+          document.getElementById('loading-text').textContent = `睡蓮を展示中... (${loadCount}/${loadTarget})`;
+          if (loadCount >= loadTarget) setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+        }, undefined, () => {
+          group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xd0c8b8, side: THREE.DoubleSide })));
+          loadCount++;
+          if (loadCount >= loadTarget) setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+        });
+
+        // Gold frame with thickness (top, bottom, and side edges)
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0xc0a060, metalness: 0.7, roughness: 0.3 });
+        const frameThickness = 0.04; // depth
+        const frameWidth = 0.05; // width of frame bar
+
+        // Top and bottom curved frame bars
+        [panelY + panelHeight/2, panelY - panelHeight/2].forEach(fy => {
+          const pts = [];
+          for (let s = 0; s <= SEGMENTS; s++) {
+            const t = s / SEGMENTS;
+            const angle = startAngle + (endAngle - startAngle) * t;
+            pts.push(new THREE.Vector3(
+              Math.cos(angle) * (RADIUS_X - WALL_OFFSET + 0.02), fy,
+              Math.sin(angle) * (RADIUS_Z - WALL_OFFSET + 0.02)
+            ));
+          }
+          const curve = new THREE.CatmullRomCurve3(pts);
+          // Rectangular cross-section using ExtrudeGeometry
+          const shape = new THREE.Shape();
+          shape.moveTo(-frameWidth/2, -frameThickness/2);
+          shape.lineTo(frameWidth/2, -frameThickness/2);
+          shape.lineTo(frameWidth/2, frameThickness/2);
+          shape.lineTo(-frameWidth/2, frameThickness/2);
+          shape.closePath();
+          const extrudeSettings = { steps: SEGMENTS, extrudePath: curve };
+          const frameGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+          group.add(new THREE.Mesh(frameGeo, frameMat));
+        });
+
+        // Side frame bars (vertical edges at gap positions)
+        [startAngle, endAngle].forEach(angle => {
+          const x = Math.cos(angle) * (RADIUS_X - WALL_OFFSET + 0.02);
+          const z = Math.sin(angle) * (RADIUS_Z - WALL_OFFSET + 0.02);
+          const barGeo = new THREE.BoxGeometry(frameWidth, panelHeight + frameWidth, frameThickness);
+          const bar = new THREE.Mesh(barGeo, frameMat);
+          bar.position.set(x, panelY, z);
+          // Face inward
+          const nx = -Math.cos(angle);
+          const nz = -Math.sin(angle);
+          bar.rotation.y = Math.atan2(nx, nz);
+          group.add(bar);
+        });
+
+        const midAngle = (startAngle + endAngle) / 2;
+        group.userData = { title: panel.title, sub: panel.sub, angle: midAngle };
+        panelMeshes.push(group);
+        scene.add(group);
+      });
+    }
+
+    // --- Auto rotation ---
+    let autoMode = true, autoAngle = 0, autoSpeed = 0.04, currentPanelIndex = -1;
+
+    function toggleAuto() {
+      autoMode = true;
+      orbitControls.enableRotate = false;
+      document.getElementById('btn-auto').classList.add('active');
+      document.getElementById('info').textContent = '自動鑑賞中 — スクロールでズーム / クリックで手動に切替';
+    }
+    function toggleManual() {
+      autoMode = false;
+      orbitControls.enableRotate = true;
+      document.getElementById('btn-auto').classList.remove('active');
+      document.getElementById('info').textContent = 'ドラッグ: 回転 / スクロール: ズーム / ESCで自動鑑賞に戻る';
+    }
+
+    renderer.domElement.addEventListener('click', () => { if (autoMode) toggleManual(); });
+    document.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !autoMode) toggleAuto(); });
+    window.toggleAuto = toggleAuto;
+    window.toggleManual = toggleManual;
+    window.switchRoom = (num) => loadRoom(num);
+
+    // --- Artwork info ---
+    const artInfoEl = document.getElementById('artwork-info');
+    const artTitleEl = document.getElementById('art-title');
+    const artSubEl = document.getElementById('art-sub');
+
+    // --- Animation ---
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+
+      if (autoMode) {
+        autoAngle += autoSpeed * delta;
+        camera.position.x = 0; camera.position.z = 0; camera.position.y = 1.5;
+        const lx = Math.cos(autoAngle) * RADIUS_X;
+        const lz = Math.sin(autoAngle) * RADIUS_Z;
+        camera.lookAt(lx, 2.0, lz);
+        orbitControls.target.set(lx * 0.5, 2.0, lz * 0.5);
+      } else {
+        orbitControls.update();
+      }
+
+      // Panel info
+      const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+      let cp = -1, cd = -1;
+      for (let i = 0; i < panelMeshes.length; i++) {
+        const d = new THREE.Vector3().subVectors(panelMeshes[i].userData.angle !== undefined ?
+          new THREE.Vector3(Math.cos(panelMeshes[i].userData.angle) * RADIUS_X * 0.5, 2, Math.sin(panelMeshes[i].userData.angle) * RADIUS_Z * 0.5) :
+          panelMeshes[i].position, camera.position).normalize();
+        const dot = d.dot(camDir);
+        if (dot > cd) { cd = dot; cp = i; }
+      }
+      if (cd > 0.6 && cp >= 0) {
+        if (currentPanelIndex !== cp) {
+          currentPanelIndex = cp;
+          artTitleEl.textContent = panelMeshes[cp].userData.title;
+          artSubEl.textContent = panelMeshes[cp].userData.sub;
+        }
+        artInfoEl.classList.add('show');
+      } else { artInfoEl.classList.remove('show'); currentPanelIndex = -1; }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    loadRoom(1);
+  </script>
+</body>
+</html>
