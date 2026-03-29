@@ -82,9 +82,10 @@ ORDER BY ?inception
 
       http.Response response;
       try {
-        response = await http.get(directUrl).timeout(const Duration(seconds: 15));
+        response = await http.get(directUrl).timeout(const Duration(seconds: 20));
+        if (response.statusCode != 200) throw Exception('Direct failed: ${response.statusCode}');
       } catch (_) {
-        response = await http.get(proxyUrl).timeout(const Duration(seconds: 20));
+        response = await http.get(proxyUrl).timeout(const Duration(seconds: 25));
       }
 
       if (response.statusCode != 200) return [];
