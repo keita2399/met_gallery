@@ -1,0 +1,161 @@
+<!DOCTYPE html><html lang="ja" translate="no"><head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="google" content="notranslate">
+  <meta name="description" content="モネ・ゴッホ・ピカソ — クリーブランド美術館の名作を楽しむギャラリー">
+  <meta name="theme-color" content="#006B3F">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="クリーブランド美術館さんぽ">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <title>クリーブランド美術館さんぽ</title>
+  <link rel="manifest" href="manifest.json">
+  
+  
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+  <style id="splash-screen-style">
+    html {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100%;
+      background-color: #121218;
+    }
+
+    #splash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #121218;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    #splash .splash-icon {
+      margin-bottom: 24px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    #splash .splash-icon svg {
+      width: 72px;
+      height: 72px;
+    }
+
+    #splash .splash-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    #splash .splash-subtitle {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 1px;
+    }
+
+    #splash .splash-accent {
+      width: 40px;
+      height: 3px;
+      background-color: #006B3F;
+      border-radius: 2px;
+      margin: 16px 0;
+    }
+
+    #splash .splash-loader {
+      margin-top: 48px;
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-top-color: #006B3F;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+  </style>
+  <script id="splash-screen-script">
+    function removeSplashFromWeb() {
+      document.getElementById("splash")?.remove();
+      document.getElementById("splash-branding")?.remove();
+      document.body.style.background = "transparent";
+    }
+  </script>
+</head>
+<body>
+  <div id="splash" aria-hidden="true">
+    <div class="splash-icon"><svg viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 5L5 30V35H95V30L50 5Z" fill="rgba(255,255,255,0.8)"/><rect x="12" y="38" width="8" height="30" rx="2" fill="rgba(255,255,255,0.6)"/><rect x="28" y="38" width="8" height="30" rx="2" fill="rgba(255,255,255,0.6)"/><rect x="46" y="38" width="8" height="30" rx="2" fill="rgba(255,255,255,0.6)"/><rect x="64" y="38" width="8" height="30" rx="2" fill="rgba(255,255,255,0.6)"/><rect x="80" y="38" width="8" height="30" rx="2" fill="rgba(255,255,255,0.6)"/><rect x="5" y="70" width="90" height="6" rx="2" fill="rgba(255,255,255,0.7)"/></svg></div>
+    <div class="splash-title">クリーブランド美術館さんぽ</div>
+    <div class="splash-accent"></div>
+    <div class="splash-subtitle" style="margin-bottom:8px;">モネ・ゴッホ・ピカソ・ルノワール...</div>
+    <div class="splash-subtitle">Cleveland Museum of Art Walk</div>
+    <div class="splash-loader"></div>
+  </div>
+  
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script>
+    // 古いService Workerのキャッシュをクリア
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (var registration of registrations) {
+          registration.unregister();
+        }
+      });
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (var name of names) caches.delete(name);
+        });
+      }
+    }
+  </script>
+  <script src="flutter_bootstrap.js" async=""></script>
+
+
+</body></html>
