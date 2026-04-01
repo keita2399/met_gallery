@@ -72,7 +72,7 @@
     <button class="active" onclick="switchRoom(1)">第1室</button>
     <button onclick="switchRoom(2)">第2室</button>
   </div>
-  <div id="info">自動鑑賞中 — クリックで絵画を拡大 | v19</div>
+  <div id="info">自動鑑賞中 — クリックで絵画を拡大 | v20</div>
 
   <!-- Painting detail overlay -->
   <div id="painting-overlay" onclick="closeOverlay()">
@@ -184,7 +184,7 @@
 
       // Use autoAngle to determine which painting is in view
       // Offset by -0.25 (one painting) to align click with correct painting
-      let normalized = (autoAngle % (Math.PI * 2)) / (Math.PI * 2) - 0.25;
+      let normalized = (autoAngle % (Math.PI * 2)) / (Math.PI * 2) + 0.25;
       if (normalized < 0) normalized += 1;
 
       const paintings = PAINTINGS[currentRoom];
