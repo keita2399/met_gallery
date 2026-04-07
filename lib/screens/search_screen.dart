@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../widgets/art_image.dart';
+import '../mixins/search_filter_mixin.dart';
 import '../models/artwork.dart';
 import '../services/art_api.dart';
 import '../services/translate_service.dart';
+import '../widgets/art_image.dart';
 import 'detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -12,12 +13,11 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen> with SearchFilterMixin {
   final TextEditingController _controller = TextEditingController();
   List<Artwork> _allWorks = [];
   List<Artwork> _results = [];
   bool _loading = true;
-  final Map<int, String> _translatedTitles = {};
 
   @override
   void initState() {
@@ -33,39 +33,14 @@ class _SearchScreenState extends State<SearchScreen> {
         _results = works;
         _loading = false;
       });
-      for (final w in works) {
-        _translateTitle(w);
-      }
+      translateAll(works);
     } catch (e) {
       setState(() => _loading = false);
     }
   }
 
-  Future<void> _translateTitle(Artwork artwork) async {
-    if (_translatedTitles.containsKey(artwork.id)) return;
-    final translated = await TranslateService.toJapanese(artwork.title);
-    if (mounted) {
-      setState(() => _translatedTitles[artwork.id] = translated);
-    }
-  }
-
   void _search(String query) {
-    if (query.isEmpty) {
-      setState(() => _results = _allWorks);
-      return;
-    }
-    final lower = query.toLowerCase();
-    setState(() {
-      _results = _allWorks.where((a) {
-        final jaArtist = TranslateService.translateArtist(a.artist).toLowerCase();
-        final jaTitle = (_translatedTitles[a.id] ?? '').toLowerCase();
-        return a.title.toLowerCase().contains(lower) ||
-            a.artist.toLowerCase().contains(lower) ||
-            jaArtist.contains(lower) ||
-            jaTitle.contains(lower) ||
-            a.date.toLowerCase().contains(lower);
-      }).toList();
-    });
+    setState(() => _results = filterByQuery(_allWorks, query));
   }
 
   @override
@@ -113,7 +88,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   itemCount: _results.length,
                   itemBuilder: (context, index) {
                     final artwork = _results[index];
-                    final jaTitle = _translatedTitles[artwork.id];
+                    final jaTitle = translatedTitles[artwork.id];
                     final jaArtist = TranslateService.translateArtist(artwork.artist);
 
                     return MouseRegion(

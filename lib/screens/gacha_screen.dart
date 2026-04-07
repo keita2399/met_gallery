@@ -1,12 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../widgets/art_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/artwork.dart';
 import '../config/app_config.dart';
 import '../services/art_api.dart';
 import '../services/firestore_service.dart';
 import '../services/translate_service.dart';
+import '../widgets/art_image.dart';
+import '../widgets/artwork_card.dart';
 import 'detail_screen.dart';
 import 'quiz_screen.dart';
 
@@ -422,56 +423,10 @@ class _GachaScreenState extends State<GachaScreen> with SingleTickerProviderStat
       itemBuilder: (context, index) {
         final artwork = _history[index];
         final jaArtist = TranslateService.translateArtist(artwork.artist);
-        return MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(fullscreenDialog: true, builder: (_) => DetailScreen(artwork: artwork)),
-              );
-            },
-            child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (artwork.imageUrl != null)
-                  ArtImage(
-                    imageUrl: artwork.imageUrl!,
-                    fit: BoxFit.cover,
-
-                    placeholder: (context, url) => Container(color: Colors.grey[900]),
-                    errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[900],
-                      child: const Icon(Icons.broken_image, color: Colors.white24),
-                    ),
-                  ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-                      stops: const [0.4, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 6,
-                  left: 6,
-                  right: 6,
-                  child: Text(
-                    jaArtist,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70, fontSize: 10),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ),
+        return ArtworkCard(
+          artwork: artwork,
+          title: jaArtist,
+          borderRadius: 10,
         );
       },
     );

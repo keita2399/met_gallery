@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../widgets/art_image.dart';
 import '../models/artist.dart';
 import '../models/artwork.dart';
 import '../services/art_api.dart';
-import 'detail_screen.dart';
+import '../widgets/artwork_card.dart';
 
 class ArtistScreen extends StatefulWidget {
   final ArtistProfile artist;
@@ -197,62 +196,9 @@ class _ArtistScreenState extends State<ArtistScreen> with SingleTickerProviderSt
   }
 
   Widget _buildWorkCard(Artwork artwork) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              fullscreenDialog: true,
-              builder: (_) => DetailScreen(artwork: artwork),
-            ),
-          );
-        },
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (artwork.imageUrl != null)
-                Hero(
-                  tag: 'artwork_${artwork.id}',
-                  child: ArtImage(
-                    imageUrl: artwork.imageUrl!,
-                    fit: BoxFit.cover,
-
-                    placeholder: (context, url) => Container(color: Colors.grey[900]),
-                    errorWidget: (context, url, error) => Container(
-                      color: Colors.grey[900],
-                      child: const Icon(Icons.broken_image, color: Colors.white24),
-                    ),
-                  ),
-                ),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-                    stops: const [0.5, 1.0],
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 8,
-                left: 8,
-                right: 8,
-                child: Text(
-                  artwork.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return ArtworkCard(
+      artwork: artwork,
+      heroTag: 'artwork_${artwork.id}',
     );
   }
 

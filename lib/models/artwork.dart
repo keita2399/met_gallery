@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-import '../config/constants.dart';
+import '../services/image_proxy_service.dart';
 
 class Artwork {
   final int id;
@@ -99,15 +98,9 @@ class Artwork {
       department: json['department'] as String?,
       artistBio: artistBio,
       tags: tagList,
-      imageUrl: _metProxyUrl(smallImg),
-      imageUrlHigh: _metProxyUrl(largeImg),
+      imageUrl: ImageProxyService.metImage(smallImg),
+      imageUrlHigh: ImageProxyService.metImage(largeImg),
     );
-  }
-
-  static String? _metProxyUrl(String? url) {
-    if (url == null || url.isEmpty) return null;
-    if (!kIsWeb) return url;
-    return 'https://wsrv.nl/?url=${Uri.encodeComponent(url)}';
   }
 
   static String? _buildMetDescription({
@@ -146,8 +139,8 @@ class Artwork {
       artist: json['artist_title'] as String? ?? 'Unknown',
       date: json['date_display'] as String? ?? '',
       description: json['thumbnail']?['alt_text'] as String?,
-      imageUrl: _aicImageUrl(imageId, 843),
-      imageUrlHigh: _aicImageUrl(imageId, 1686),
+      imageUrl: ImageProxyService.aicImage(imageId, 843),
+      imageUrlHigh: ImageProxyService.aicImage(imageId, 1686),
     );
   }
 
@@ -165,15 +158,8 @@ class Artwork {
       dimensions: json['dimensions'] as String?,
       creditLine: json['credit_line'] as String?,
       placeOfOrigin: json['place_of_origin'] as String?,
-      imageUrl: _aicImageUrl(imageId, 843),
-      imageUrlHigh: _aicImageUrl(imageId, 1686),
+      imageUrl: ImageProxyService.aicImage(imageId, 843),
+      imageUrlHigh: ImageProxyService.aicImage(imageId, 1686),
     );
-  }
-
-  static const _aicProxy = '$kBotBaseUrl/api/image';
-
-  static String? _aicImageUrl(String? imageId, int width) {
-    if (imageId == null) return null;
-    return '$_aicProxy?id=$imageId&w=$width';
   }
 }

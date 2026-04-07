@@ -1,12 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../widgets/art_image.dart';
 import 'package:share_plus/share_plus.dart';
 import '../config/app_config.dart';
+import '../mixins/search_filter_mixin.dart';
 import '../models/artwork.dart';
 import '../services/art_api.dart';
 import '../services/firestore_service.dart';
 import '../services/translate_service.dart';
+import '../widgets/art_image.dart';
 import 'detail_screen.dart';
 
 class GalleryScreen extends StatefulWidget {
@@ -16,7 +17,7 @@ class GalleryScreen extends StatefulWidget {
   State<GalleryScreen> createState() => _GalleryScreenState();
 }
 
-class _GalleryScreenState extends State<GalleryScreen> {
+class _GalleryScreenState extends State<GalleryScreen> with SearchFilterMixin {
   final PageController _pageController = PageController();
   final TextEditingController _searchController = TextEditingController();
   List<Artwork> _artworks = [];
@@ -25,7 +26,6 @@ class _GalleryScreenState extends State<GalleryScreen> {
   bool _loading = true;
   int _currentPage = 0;
   String? _selectedArtist;
-  final Map<int, String> _translatedTitles = {};
   bool _panelOpen = false;
   double _pageOffset = 0.0;
 
@@ -56,22 +56,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
       if (_pageController.hasClients) {
         _pageController.jumpToPage(0);
       }
-      if (works.isNotEmpty) {
-        _translateTitle(works[0]);
-      }
-      for (final w in works) {
-        _translateTitle(w);
-      }
+      translateAll(works);
     } catch (e) {
       setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _translateTitle(Artwork artwork) async {
-    if (_translatedTitles.containsKey(artwork.id)) return;
-    final translated = await TranslateService.toJapanese(artwork.title);
-    if (mounted) {
-      setState(() => _translatedTitles[artwork.id] = translated);
     }
   }
 
@@ -87,22 +74,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 
   void _searchArtworks(String query) {
-    if (query.isEmpty) {
-      setState(() => _filteredArtworks = _artworks);
-      return;
-    }
-    final lower = query.toLowerCase();
-    setState(() {
-      _filteredArtworks = _artworks.where((a) {
-        final jaArtist = TranslateService.translateArtist(a.artist).toLowerCase();
-        final jaTitle = (_translatedTitles[a.id] ?? '').toLowerCase();
-        return a.title.toLowerCase().contains(lower) ||
-            a.artist.toLowerCase().contains(lower) ||
-            jaArtist.contains(lower) ||
-            jaTitle.contains(lower) ||
-            a.date.toLowerCase().contains(lower);
-      }).toList();
-    });
+    setState(() => _filteredArtworks = filterByQuery(_artworks, query));
   }
 
   void _selectArtwork(Artwork artwork) {
@@ -110,7 +82,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
     if (index >= 0 && _pageController.hasClients) {
       _pageController.jumpToPage(index);
       setState(() => _currentPage = index);
-      _translateTitle(artwork);
+      translateTitle(artwork);
     }
   }
 
@@ -180,9 +152,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 itemCount: _artworks.length,
                 onPageChanged: (i) {
                   setState(() => _currentPage = i);
-                  _translateTitle(_artworks[i]);
+                  translateTitle(_artworks[i]);
                   if (i + 1 < _artworks.length) {
-                    _translateTitle(_artworks[i + 1]);
+                    translateTitle(_artworks[i + 1]);
                   }
                 },
                 itemBuilder: (context, index) => _buildArtworkPage(_artworks[index], index),
@@ -330,7 +302,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                           itemBuilder: (context, index) {
                             final w = _filteredArtworks[index];
                             final isSelected = _currentPage < _artworks.length && w.id == _artworks[_currentPage].id;
-                            final jaTitle = _translatedTitles[w.id];
+                            final jaTitle = translatedTitles[w.id];
                             final jaArtist = TranslateService.translateArtist(w.artist);
 
                             return MouseRegion(
@@ -416,7 +388,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
   Widget _buildArtworkPage(Artwork artwork, int index) {
     final isFav = _favoriteIds.contains(artwork.id);
-    final translatedTitle = _translatedTitles[artwork.id];
+    final translatedTitle = translatedTitles[artwork.id];
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     final favButton = _sideButton(

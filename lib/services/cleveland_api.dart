@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/artwork.dart';
 import 'art_api.dart';
+import 'image_proxy_service.dart';
 
 /// Cleveland Museum of Art API実装（プロキシ経由）
 class ClevelandApi extends ArtApi {
@@ -105,12 +106,8 @@ class ClevelandApi extends ArtApi {
       final webUrl = (images['web'] as Map<String, dynamic>?)?['url'] as String?;
       final printUrl = (images['print'] as Map<String, dynamic>?)?['url'] as String?;
       // CDN画像もCORSなしのためプロキシ経由
-      imageUrl = webUrl != null
-          ? '$kBotBaseUrl/api/image?met=${Uri.encodeComponent(webUrl)}'
-          : null;
-      imageUrlHigh = printUrl != null
-          ? '$kBotBaseUrl/api/image?met=${Uri.encodeComponent(printUrl)}'
-          : imageUrl;
+      imageUrl = webUrl != null ? ImageProxyService.proxied(webUrl) : null;
+      imageUrlHigh = printUrl != null ? ImageProxyService.proxied(printUrl) : imageUrl;
     }
 
     return Artwork(

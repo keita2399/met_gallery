@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../widgets/art_image.dart';
 import '../models/artwork.dart';
 import '../services/art_api.dart';
 import '../services/firestore_service.dart';
 import '../services/stats_service.dart';
 import '../services/translate_service.dart';
+import '../widgets/artwork_card.dart';
 import 'detail_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
@@ -160,9 +160,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         final artwork = _favorites[index];
         final jaArtist = TranslateService.translateArtist(artwork.artist);
 
-        return MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
+        return GestureDetector(
+          onLongPress: () => _showDeleteDialog(artwork),
+          child: ArtworkCard(
+            artwork: artwork,
+            subtitle: jaArtist,
+            heroTag: 'artwork_${artwork.id}',
             onTap: () async {
               await Navigator.push(
                 context,
@@ -170,61 +173,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               );
               _loadFavorites();
             },
-            onLongPress: () => _showDeleteDialog(artwork),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (artwork.imageUrl != null)
-                  Hero(
-                    tag: 'artwork_${artwork.id}',
-                    child: ArtImage(
-                      imageUrl: artwork.imageUrl!,
-                      fit: BoxFit.cover,
-
-                      placeholder: (context, url) => Container(color: Colors.grey[900]),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[900],
-                        child: const Icon(Icons.broken_image, color: Colors.white24),
-                      ),
-                    ),
-                  ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-                      stops: const [0.4, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  right: 8,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        artwork.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        jaArtist,
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
-        ),
         );
       },
     );

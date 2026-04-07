@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:ui' as ui;
 import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/artwork.dart';
 import 'art_api.dart';
+import 'image_proxy_service.dart';
 
 /// Wikidata SPARQL経由で特定画家の作品を取得する汎用API
 /// フェルメール、レンブラント等、画家ごとにインスタンスを作成
@@ -26,38 +26,6 @@ class WikidataArtistApi extends ArtApi {
   @override
   Map<String, String> get imageHeaders => const {};
 
-  /// Get optimal thumbnail width based on device screen
-  static int _optimalThumbWidth() {
-    final view = ui.PlatformDispatcher.instance.implicitView;
-    if (view == null) return 800;
-    final logicalWidth = view.physicalSize.width / view.devicePixelRatio;
-    final pixelWidth = (logicalWidth * view.devicePixelRatio).round();
-    // Clamp between 400 and 1600
-    return pixelWidth.clamp(400, 1600);
-  }
-
-  /// Convert to proxied thumbnail URL (device-adaptive size) for list/gallery views
-  static String _toThumbUrl(String url) {
-    if (url.startsWith('http://')) {
-      url = 'https://${url.substring(7)}';
-    }
-    if (url.contains('upload.wikimedia.org') && !url.contains('/thumb/')) {
-      final width = _optimalThumbWidth();
-      final uri = Uri.parse(url);
-      final fileName = uri.pathSegments.last;
-      final thumbPath = uri.path.replaceFirst('/commons/', '/commons/thumb/');
-      url = '${uri.scheme}://${uri.host}$thumbPath/${width}px-$fileName';
-    }
-    return '$kBotBaseUrl/api/image?met=${Uri.encodeComponent(url)}';
-  }
-
-  /// Convert to proxied full-size URL for detail/zoom views
-  static String _toFullUrl(String url) {
-    if (url.startsWith('http://')) {
-      url = 'https://${url.substring(7)}';
-    }
-    return '$kBotBaseUrl/api/image?met=${Uri.encodeComponent(url)}';
-  }
 
   Future<List<Artwork>> _fetchAllWorks() async {
     final query = '''
@@ -127,8 +95,8 @@ ORDER BY ?inception
           description: description,
           medium: collection != null ? '所蔵: $collection' : null,
           placeOfOrigin: artistCountry,
-          imageUrl: _toThumbUrl(imageUrl),
-          imageUrlHigh: _toFullUrl(imageUrl),
+          imageUrl: ImageProxyService.wikimediaThumb(imageUrl),
+          imageUrlHigh: ImageProxyService.proxied(imageUrl),
         ));
       }
 

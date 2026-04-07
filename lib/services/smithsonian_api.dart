@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/artwork.dart';
 import 'art_api.dart';
+import 'image_proxy_service.dart';
 
 /// Smithsonian Institution Open Access API実装（プロキシ経由）
 class SmithsonianApi extends ArtApi {
@@ -71,7 +72,7 @@ class SmithsonianApi extends ArtApi {
         imageUrl = m['thumbnail'] as String? ?? m['content'] as String?;
         // プロキシ経由にする
         if (imageUrl != null) {
-          imageUrl = '$kBotBaseUrl/api/image?met=${Uri.encodeComponent(imageUrl)}';
+          imageUrl = ImageProxyService.proxied(imageUrl);
         }
       }
     }
